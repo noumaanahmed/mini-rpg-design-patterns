@@ -1,6 +1,7 @@
 package edu.neu.csye7374;
 
 import java.util.InputMismatchException;
+import java.util.Random;
 import java.util.Scanner;
 
 /**
@@ -13,10 +14,18 @@ import java.util.Scanner;
  *  2. Read player choice
  *  3. Queue commands in CommandInvoker
  *  4. Execute commands
- *  5. Enemy turn
+ *  5. (Optional) Enemy turn
  *  6. Check win/lose and repeat
+ *
+ * NEW:
+ *  - Warrior vs Mage differentiation
+ *  - Mage has mana and can choose Staff Attack or Fireball
+ *  - If Mage tries Fireball with no mana, they get punished
+ *  - Heal action does NOT trigger an enemy attack that turn
  */
 public class Demo {
+
+    private static final Random RAND = new Random();
 
     public static void gameRun() {
         Scanner sc = new Scanner(System.in);
@@ -66,9 +75,10 @@ public class Demo {
         System.out.println("[Pattern] Using Factory (CharacterFactory) + Builder (CharacterBuilder) for characters.\n");
 
         System.out.println("Choose your class:");
-        System.out.println("  1. Warrior");
-        System.out.println("  2. Mage");
-        int choice = readIntInRange(sc, "Enter choice: ", 1, 2);
+        System.out.println("  1. Warrior (strong physical attacks)");
+        System.out.println("  2. Mage    (weaker staff, strong fireball with mana)");
+        int classChoice = readIntInRange(sc, "Enter choice: ", 1, 2);
+        boolean isMage = (classChoice == 2);
 
         System.out.print("\nEnter your character name: ");
         String name = sc.nextLine().trim();
@@ -76,7 +86,7 @@ public class Demo {
             name = "Hero";
         }
 
-        Character player = (choice == 1)
+        Character player = (classChoice == 1)
                 ? CharacterFactory.createCharacter("warrior", name)
                 : CharacterFactory.createCharacter("mage", name);
         player.addObserver(logger);
@@ -87,13 +97,25 @@ public class Demo {
         Character enemy = enemyBuilder.build();
         enemy.addObserver(logger);
 
+        // Mage mana pool is tracked locally, not in Character
+        final int[] playerMana = new int[1];
+        final int maxMana;
+        if (isMage) {
+            playerMana[0] = 40; // starting mana
+            maxMana = 40;
+            System.out.println("[Info] As a Mage, you start with " + maxMana + " mana.");
+        } else {
+            playerMana[0] = 0;
+            maxMana = 0;
+        }
+
         // --- Strategy Pattern ---
         System.out.println();
-        System.out.println("[Pattern] Using Strategy for attack behavior (Aggressive / Defensive).");
+        System.out.println("[Pattern] Using Strategy for mode: Aggressive (Attack) vs Defensive (Heal).");
         int strat = readIntInRange(sc,
-                "\nSelect starting strategy:\n"
-                        + "  1. Aggressive (Attack)\n"
-                        + "  2. Defensive (Heal)\n"
+                "\nSelect starting mode:\n"
+                        + "  1. Aggressive (Action = Attack)\n"
+                        + "  2. Defensive (Action = Heal)\n"
                         + "Enter choice: ",
                 1, 2);
 
@@ -102,6 +124,7 @@ public class Demo {
         } else {
             player.setStrategy(new DefensiveAttack());
         }
+        // Enemy always aggressive
         enemy.setStrategy(new AggressiveAttack());
 
         // --- Command Pattern ---
@@ -109,6 +132,8 @@ public class Demo {
         CommandInvoker invoker = new CommandInvoker();
 
         boolean playing = true;
+        boolean lastActionWasHeal = false;
+
         while (playing) {
             // ===== Menu & Status =====
             System.out.println();
@@ -117,16 +142,19 @@ public class Demo {
             System.out.println("===========================================");
             System.out.println("Current Strategy : [" + playerStrategyName(player) + "]");
             System.out.println("Player HP        : " + player.getHealth());
+            if (isMage) {
+                System.out.println("Player Mana      : " + playerMana[0] + "/" + maxMana);
+            }
             System.out.println("Goblin HP        : " + enemy.getHealth());
             System.out.println("-------------------------------------------");
 
-            String currentStrat = playerStrategyName(player).toLowerCase();
-            if (currentStrat.equals("aggressive")) {
-                System.out.println("  1. Attack Enemy");
+            boolean isAggressive = player.getStrategy() instanceof AggressiveAttack;
+            if (isAggressive) {
+                System.out.println("  1. Attack");
             } else {
-                System.out.println("  1. Heal Yourself");
+                System.out.println("  1. Heal");
             }
-            System.out.println("  2. Change Strategy");
+            System.out.println("  2. Change Strategy (Aggressive / Defensive)");
             System.out.println("  3. Quit Game");
 
             int action = readIntInRange(sc, "\nChoose an option: ", 1, 3);
@@ -134,18 +162,24 @@ public class Demo {
 
             switch (action) {
                 case 1:
-                    if (currentStrat.equals("aggressive")) {
-                        invoker.addCommand(new AttackCommand(player, enemy));
+                    invoker = new CommandInvoker();
+                    if (isAggressive) {
+                        lastActionWasHeal = false;
+                        // Command encapsulates the full attack decision (staff vs fireball etc.)
+                        Command attackCmd = () -> handlePlayerAttack(sc, player, enemy, isMage, playerMana, maxMana);
+                        invoker.addCommand(attackCmd);
                     } else {
-                        invoker.addCommand(new HealCommand(player, 10));
+                        lastActionWasHeal = true;
+                        Command healCmd = () -> handlePlayerHeal(player);
+                        invoker.addCommand(healCmd);
                     }
                     break;
 
                 case 2:
                     int s = readIntInRange(sc,
-                            "\nSelect new strategy:\n"
-                                    + "  1. Aggressive (Attack)\n"
-                                    + "  2. Defensive (Heal)\n"
+                            "\nSelect new strategy mode:\n"
+                                    + "  1. Aggressive (Action = Attack)\n"
+                                    + "  2. Defensive (Action = Heal)\n"
                                     + "Enter choice: ",
                             1, 2);
                     if (s == 1) {
@@ -153,7 +187,7 @@ public class Demo {
                     } else {
                         player.setStrategy(new DefensiveAttack());
                     }
-                    System.out.println("\n[Info] Strategy changed successfully.\n");
+                    System.out.println("\n[Info] Strategy mode changed successfully.\n");
                     continue;
 
                 case 3:
@@ -165,11 +199,9 @@ public class Demo {
             // Execute all queued commands this turn
             invoker.executeAll();
 
-            // Enemy turn
-            if (playing && enemy.isAlive() && player.isAlive()) {
-                System.out.println();
-                System.out.println("--------------- Enemy Turn ---------------");
-                enemy.attack(player);
+            // Enemy turn happens ONLY if last action was NOT heal
+            if (playing && !lastActionWasHeal && enemy.isAlive() && player.isAlive()) {
+                enemyTurn(enemy, player);
             }
 
             // Check results
@@ -190,6 +222,70 @@ public class Demo {
 
         System.out.println("=== GAME OVER ===\n");
         sc.close();
+    }
+
+    // ======================
+    // Player action helpers
+    // ======================
+
+    private static void handlePlayerAttack(Scanner sc,
+                                           Character player,
+                                           Character enemy,
+                                           boolean isMage,
+                                           int[] playerMana,
+                                           int maxMana) {
+        if (!player.isAlive() || !enemy.isAlive()) return;
+
+        if (isMage) {
+            System.out.println("Choose your attack:");
+            System.out.println("  1. Staff Attack (low damage, no mana cost)");
+            System.out.println("  2. Cast Fireball (high damage, costs mana)");
+            int choice = readIntInRange(sc, "Enter choice: ", 1, 2);
+
+            if (choice == 1) {
+                int dmg = randomBetween(6, 12);
+                enemy.takeDamage(dmg);
+                player.notifyObservers(player.getName()
+                        + " strikes the Goblin with staff for " + dmg + " damage!");
+            } else {
+                final int cost = 10;
+                if (playerMana[0] >= cost) {
+                    playerMana[0] -= cost;
+                    int dmg = randomBetween(18, 25);
+                    enemy.takeDamage(dmg);
+                    player.notifyObservers(player.getName()
+                            + " casts Fireball for " + dmg + " damage! (Mana: "
+                            + playerMana[0] + "/" + maxMana + ")");
+                } else {
+                    player.notifyObservers("Not enough mana to cast Fireball! The spell fizzles and the Goblin punishes you!");
+                    int counter = randomBetween(8, 15);
+                    player.takeDamage(counter);
+                }
+            }
+        } else {
+            // Warrior: strong physical attacks only
+            int dmg = randomBetween(12, 20);
+            enemy.takeDamage(dmg);
+            player.notifyObservers(player.getName()
+                    + " swings mightily and hits the Goblin for " + dmg + " damage!");
+        }
+    }
+
+    private static void handlePlayerHeal(Character player) {
+        if (!player.isAlive()) return;
+        int healAmt = randomBetween(10, 16);
+        player.heal(healAmt);
+        // Character.heal already notifies observers
+    }
+
+    private static void enemyTurn(Character enemy, Character player) {
+        System.out.println();
+        System.out.println("--------------- Enemy Turn ---------------");
+        enemy.attack(player); // Uses AggressiveAttack strategy
+    }
+
+    private static int randomBetween(int min, int max) {
+        return RAND.nextInt((max - min) + 1) + min;
     }
 
     private static String playerStrategyName(Character player) {

@@ -1,0 +1,25 @@
+.char-box {
+    -fx-padding: 12;
+    -fx-border-width: 3;
+    -fx-border-color: transparent;
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-background-color: rgba(255,255,255,0.10);
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.45), 18, 0.3, 0, 4);
+    -fx-cursor: hand;
+}
+
+.char-box:hover {
+    -fx-background-color: rgba(255,255,255,0.22);
+}
+
+.selected {
+    -fx-border-color: #00c8ff;
+    -fx-background-color: rgba(0,200,255,0.18);
+}
+
+.char-label {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}

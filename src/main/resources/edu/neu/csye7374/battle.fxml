@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.image.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<BorderPane fx:controller="edu.neu.csye7374.javafx.FXBattleController"
+            xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            prefWidth="900" prefHeight="600">
+
+    <!-- CENTER: battlefield + logs -->
+    <center>
+        <VBox alignment="CENTER" spacing="10" BorderPane.alignment="CENTER">
+
+            <!-- Battlefield area -->
+            <Pane prefWidth="900" prefHeight="380">
+
+                <!-- Background, stretched to full width -->
+                <ImageView fitWidth="900" fitHeight="380" preserveRatio="false">
+                    <image>
+                        <!-- re-use your existing background -->
+                        <Image url="@assets/backgrounds/character_select_bg.png" />
+                    </image>
+                </ImageView>
+
+                <!-- HERO HP ABOVE HERO -->
+                <Label fx:id="heroHp"
+                       layoutX="160" layoutY="165"
+                       style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;
+                              -fx-effect: dropshadow(one-pass-box, black, 4, 0, 0, 0);" />
+
+                <!-- ENEMY HP ABOVE GOBLIN -->
+                <Label fx:id="enemyHp"
+                       layoutX="620" layoutY="165"
+                       style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;
+                              -fx-effect: dropshadow(one-pass-box, black, 4, 0, 0, 0);" />
+
+                <!-- HERO SPRITE -->
+                <ImageView fx:id="heroSprite"
+                           layoutX="160" layoutY="200"
+                           fitWidth="170" preserveRatio="true" />
+
+                <!-- HEAL OVERLAY (STACKED ON TOP OF HERO, INITIALLY HIDDEN) -->
+                <ImageView fx:id="heroHealOverlay"
+                           layoutX="150" layoutY="170"
+                           fitWidth="190" preserveRatio="true"
+                           visible="false" mouseTransparent="true" />
+
+                <!-- GOBLIN SPRITE (FACES HERO VIA SCALEX IN CONTROLLER) -->
+                <ImageView fx:id="enemySprite"
+                           layoutX="620" layoutY="200"
+                           fitWidth="170" preserveRatio="true" />
+
+            </Pane>
+
+            <!-- BATTLE LOGS (BETWEEN SPRITES AND BUTTONS) -->
+            <VBox fx:id="logBox"
+                  prefHeight="120" maxWidth="780"
+                  spacing="4"
+                  alignment="TOP_LEFT"
+                  style="-fx-padding: 8 16 8 16;
+                         -fx-background-color: rgba(0,0,0,0.45);
+                         -fx-background-radius: 10;">
+            </VBox>
+
+        </VBox>
+    </center>
+
+    <!-- BOTTOM: ACTION BUTTONS -->
+    <bottom>
+        <HBox spacing="20" alignment="CENTER" prefHeight="90" BorderPane.alignment="CENTER"
+              style="-fx-padding: 10 0 20 0;">
+            <Button fx:id="swordButton"
+                    text="Attack"
+                    onAction="#onSwordAttack"
+                    style="-fx-font-size: 16; -fx-padding: 8 20;" />
+
+            <Button fx:id="fireballButton"
+                    text="Fireball"
+                    onAction="#onFireball"
+                    style="-fx-font-size: 16; -fx-padding: 8 20;" />
+
+            <Button fx:id="healButton"
+                    text="Heal"
+                    onAction="#onHeal"
+                    style="-fx-font-size: 16; -fx-padding: 8 20;" />
+        </HBox>
+    </bottom>
+
+</BorderPane>

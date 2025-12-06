@@ -1,29 +1,22 @@
 package edu.neu.csye7374;
 
-import java.util.Random;
-
-/**
- * Design Pattern: Strategy (Concrete Strategy)
- * -------------------------------------------
- * Aggressive attack behavior: deals 10–20 damage to the target.
- */
 public class AggressiveAttack implements AttackStrategy {
-
-    private final Random rand = new Random();
 
     @Override
     public void execute(Character self, Character target) {
-        if (target == null) return;
 
-        int damage = rand.nextInt(11) + 10; // 10–20 inclusive
-        target.takeDamage(damage);
-        self.notifyObservers(
-                self.getName() + " attacked " + target.getName()
-                        + " for " + damage + " damage!");
+        if (self.getMana() > 0) {
+            // Mage auto chooses fireball OR staff depending on UI
+            self.staffAttack(target);
+        } 
+        else {
+            // Warrior or Mage with no mana
+            int dmg = 12; // warrior baseline
+            target.takeDamage(dmg);
+            self.notifyObservers(self.getName() + " strikes powerfully for " + dmg + " damage!");
+        }
     }
 
     @Override
-    public String getName() {
-        return "Aggressive";
-    }
+    public String getName() { return "Aggressive"; }
 }

@@ -2,17 +2,90 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>groupId</groupId>
+    <groupId>edu.neu.csye7374</groupId>
     <artifactId>CSYE7374-Design-Patterns</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.version>21</javafx.version>
+        <javafx.platform>mac-aarch64</javafx.platform> <!-- IMPORTANT FOR M1/M2/M3 -->
     </properties>
 
-    
+    <dependencies>
+
+        <!-- JavaFX Controls -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+
+        <!-- JavaFX FXML -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-fxml</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+
+        <!-- JavaFX Graphics (REQUIRED for images) -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+            <classifier>${javafx.platform}</classifier>
+        </dependency>
+
+    </dependencies>
+
+
+
+    <build>
+
+        <!-- Make sure PNG, JPG, FXML are copied -->
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*.fxml</include>
+                    <include>**/*.png</include>
+                    <include>**/*.jpg</include>
+                    <include>**/*.jpeg</include>
+                    <include>**/*.css</include>
+                </includes>
+                 <filtering>false</filtering>
+            </resource>
+        </resources>
+
+
+        <!-- Allow Maven to run JavaFX -->
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+
+                <configuration>
+                    <mainClass>edu.neu.csye7374.javafx.FXLauncher</mainClass>
+
+                    <!-- REQUIRED FOR JAVAFX -->
+                    <arguments>
+                        <argument>--module-path</argument>
+                        <argument>${path.separator}${project.basedir}/target/libs</argument>
+                        <argument>--add-modules</argument>
+                        <argument>javafx.controls,javafx.fxml,javafx.graphics</argument>
+                    </arguments>
+                </configuration>
+
+            </plugin>
+        </plugins>
+    </build>
+
 </project>

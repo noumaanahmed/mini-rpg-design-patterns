@@ -4,6 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Random;
 
 /**
  * Swing-based GUI for the mini RPG game.
@@ -11,11 +12,16 @@ import java.awt.event.ActionListener;
  * Demonstrates several design patterns via a graphical front-end:
  * - Singleton: GameConfig
  * - Factory + Builder: CharacterFactory, CharacterBuilder
- * - Strategy: AggressiveAttack, DefensiveAttack
- * - Command: CommandInvoker, AttackCommand, HealCommand
+ * - Strategy: AggressiveAttack, DefensiveAttack (mode: Attack vs Heal)
+ * - Command: CommandInvoker with Commands wrapping player actions
  * - Observer: GameObserver (ConsoleLogger + TextAreaObserverAdapter)
  * - Adapter: TextAreaObserverAdapter adapts GameObserver to JTextArea
- * - Facade-ish: GameGUI play/turn methods wrap the core calls
+ *
+ * NEW:
+ * - Warrior vs Mage differentiation
+ * - Mage has mana and can choose Staff Attack or Fireball (popup)
+ * - If Mage has no mana for Fireball, they get punished
+ * - Heal action does NOT trigger enemy attack
  */
 public class GameGUI extends JFrame {
 
@@ -54,6 +60,16 @@ public class GameGUI extends JFrame {
     private int originalHeroX;
     private int heroOffset = 0;
     private boolean movingForward = true;
+
+    // Player class & mana (tracked outside Character)
+    private boolean playerIsMage;
+    private int playerMana;
+    private int playerMaxMana;
+
+    // Heal behavior flag
+    private boolean lastActionWasHeal = false;
+
+    private final Random rand = new Random();
 
     public GameGUI() {
         super("Mini RPG - Design Patterns GUI");
@@ -183,7 +199,7 @@ public class GameGUI extends JFrame {
         goblinSpriteLabel.setBounds(580, 80, 120, 80);
 
         heroHpLabel = new JLabel("Hero HP: 100", SwingConstants.CENTER);
-        heroHpLabel.setBounds(100, 50, 120, 20);
+        heroHpLabel.setBounds(100, 50, 200, 20);
 
         goblinHpLabel = new JLabel("Goblin HP: 80", SwingConstants.CENTER);
         goblinHpLabel.setBounds(580, 50, 120, 20);
@@ -263,6 +279,16 @@ public class GameGUI extends JFrame {
         // Factory + Builder for player
         player = CharacterFactory.createCharacter(type, name);
 
+        // Determine class
+        playerIsMage = "mage".equalsIgnoreCase(type);
+        if (playerIsMage) {
+            playerMana = 40;
+            playerMaxMana = 40;
+        } else {
+            playerMana = 0;
+            playerMaxMana = 0;
+        }
+
         // Builder for enemy
         CharacterBuilder enemyBuilder = new CharacterBuilder()
                 .setName("Goblin")
@@ -278,22 +304,27 @@ public class GameGUI extends JFrame {
         enemy.addObserver(consoleLogger);
         enemy.addObserver(guiLogger);
 
-        // Strategy
+        // Strategy for player: controls whether Action = Attack or Heal
         if (aggressiveStart) {
             player.setStrategy(new AggressiveAttack());
         } else {
             player.setStrategy(new DefensiveAttack());
         }
+        // Enemy always aggressive
         enemy.setStrategy(new AggressiveAttack());
 
         // Command invoker
         invoker = new CommandInvoker();
+        lastActionWasHeal = false;
 
         updateStrategyLabel();
         updateHpLabels();
 
         logDesignEvent("[Factory + Builder] Created player '" + player.getName()
-                + "' and enemy 'Goblin' with HP " + goblinHP);
+                + "' (" + (playerIsMage ? "Mage" : "Warrior") + ") and enemy 'Goblin' with HP " + goblinHP);
+        if (playerIsMage) {
+            logDesignEvent("[Resource] Mage starts with mana: " + playerMana + "/" + playerMaxMana);
+        }
         logDesignEvent("[Strategy] Starting strategy: " + playerStrategyName());
         logDesignEvent("[Singleton] Difficulty set to: " + difficulty + " (via GameConfig)");
     }
@@ -304,15 +335,19 @@ public class GameGUI extends JFrame {
 
         boolean isAggressive = player.getStrategy() instanceof AggressiveAttack;
 
+        invoker = new CommandInvoker();
+
         if (isAggressive) {
-            // Command + Strategy
-            invoker.addCommand(new AttackCommand(player, enemy));
-            logDesignEvent("[Command + Strategy] Player uses AttackCommand with AggressiveAttack");
-            playAttackAnimation(true);
+            lastActionWasHeal = false;
+            // Command wraps the entire attack decision (staff vs fireball, etc.)
+            Command attackCmd = () -> handleGuiPlayerAttack();
+            invoker.addCommand(attackCmd);
+            logDesignEvent("[Command] Player queued an Attack command");
         } else {
-            // Command + Strategy (heal via DefensiveAttack logic)
-            invoker.addCommand(new HealCommand(player, 10));
-            logDesignEvent("[Command + Strategy] Player uses HealCommand with Defensive mindset");
+            lastActionWasHeal = true;
+            Command healCmd = () -> handleGuiPlayerHeal();
+            invoker.addCommand(healCmd);
+            logDesignEvent("[Command] Player queued a Heal command");
         }
 
         invoker.executeAll();
@@ -320,8 +355,10 @@ public class GameGUI extends JFrame {
         checkGameOver();
         if (!enemy.isAlive() || !player.isAlive()) return;
 
-        // Enemy turn
-        enemyTurn();
+        // Enemy turn ONLY if last action was NOT heal
+        if (!lastActionWasHeal) {
+            enemyTurn();
+        }
     }
 
     private void enemyTurn() {
@@ -348,9 +385,76 @@ public class GameGUI extends JFrame {
         logDesignEvent("[Strategy] Player strategy switched to: " + playerStrategyName());
     }
 
+    private void handleGuiPlayerAttack() {
+        if (!player.isAlive() || !enemy.isAlive()) return;
+
+        if (playerIsMage) {
+            String[] options = {"Staff Attack", "Cast Fireball"};
+            int choice = JOptionPane.showOptionDialog(
+                    this,
+                    "Choose your attack:",
+                    "Mage Attack",
+                    JOptionPane.DEFAULT_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    options,
+                    options[0]
+            );
+
+            if (choice != 1) {
+                // Staff attack (default or closed dialog)
+                int dmg = randomBetween(6, 12);
+                enemy.takeDamage(dmg);
+                player.notifyObservers(player.getName()
+                        + " strikes the Goblin with staff for " + dmg + " damage!");
+                playAttackAnimation(true);
+            } else {
+                // Fireball
+                int cost = 10;
+                if (playerMana >= cost) {
+                    playerMana -= cost;
+                    int dmg = randomBetween(18, 25);
+                    enemy.takeDamage(dmg);
+                    player.notifyObservers(player.getName()
+                            + " casts Fireball for " + dmg + " damage! (Mana: "
+                            + playerMana + "/" + playerMaxMana + ")");
+                    playAttackAnimation(true);
+                } else {
+                    player.notifyObservers("Not enough mana to cast Fireball! The spell fizzles and the Goblin punishes you!");
+                    // Immediate punishment hit
+                    int counter = randomBetween(8, 15);
+                    player.takeDamage(counter);
+                }
+            }
+        } else {
+            // Warrior: strong physical attacks
+            int dmg = randomBetween(12, 20);
+            enemy.takeDamage(dmg);
+            player.notifyObservers(player.getName()
+                    + " swings mightily and hits the Goblin for " + dmg + " damage!");
+            playAttackAnimation(true);
+        }
+    }
+
+    private void handleGuiPlayerHeal() {
+        if (!player.isAlive()) return;
+        int healAmt = randomBetween(10, 16);
+        player.heal(healAmt); // Character.heal already logs via observers
+        // No enemy attack this turn (handled by lastActionWasHeal flag)
+    }
+
+    private int randomBetween(int min, int max) {
+        return rand.nextInt((max - min) + 1) + min;
+    }
+
     private void updateHpLabels() {
         if (player != null) {
-            heroHpLabel.setText(player.getName() + " HP: " + player.getHealth());
+            if (playerIsMage) {
+                heroHpLabel.setText(player.getName() + " HP: " + player.getHealth()
+                        + " | Mana: " + playerMana + "/" + playerMaxMana);
+            } else {
+                heroHpLabel.setText(player.getName() + " HP: " + player.getHealth());
+            }
         }
         if (enemy != null) {
             goblinHpLabel.setText("Goblin HP: " + enemy.getHealth());
@@ -361,9 +465,9 @@ public class GameGUI extends JFrame {
         String name = playerStrategyName();
         strategyLabel.setText("Strategy: [" + name + "]");
         if ("Aggressive".equalsIgnoreCase(name)) {
-            actionButton.setText("Attack Enemy");
+            actionButton.setText("Attack");
         } else if ("Defensive".equalsIgnoreCase(name)) {
-            actionButton.setText("Heal Self");
+            actionButton.setText("Heal");
         } else {
             actionButton.setText("Action");
         }

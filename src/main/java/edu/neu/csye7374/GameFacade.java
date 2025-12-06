@@ -24,19 +24,23 @@ public class GameFacade {
         }
     }
 
+    /**
+     * Starts a new game using the Factory + Builder patterns
+     * and wires up strategies and observers.
+     */
     public void startNewGame(String name, String type, int difficulty) {
         config.setDifficulty(difficulty);
 
-        // Factory + Prototype
+        // Factory + Builder for player
         player = CharacterFactory.createCharacter(type, name);
 
-        // Builder for enemy
+        // Builder for enemy with difficulty-based HP
         int goblinHP;
         switch (difficulty) {
-            case 1: goblinHP = 50; break;
-            case 2: goblinHP = 80; break;
-            case 3: goblinHP = 120; break;
-            default: goblinHP = 80;
+            case 1 -> goblinHP = 50;
+            case 2 -> goblinHP = 80;
+            case 3 -> goblinHP = 120;
+            default -> goblinHP = 80;
         }
 
         CharacterBuilder enemyBuilder = new CharacterBuilder()
@@ -61,7 +65,10 @@ public class GameFacade {
         log("Difficulty: " + difficulty + " | Goblin HP: " + goblinHP);
     }
 
-    // Template-ish helper methods: they define the base "steps" of a turn
+    // ---------------------------------------------------------------------
+    // INTERNAL TEMPLATE-LIKE HELPERS (used by console & UI)
+    // ---------------------------------------------------------------------
+
     void basicPlayerAttack() {
         if (player != null && enemy != null && player.isAlive() && enemy.isAlive()) {
             player.attack(enemy);
@@ -71,6 +78,7 @@ public class GameFacade {
 
     void basicPlayerHeal() {
         if (player != null && player.isAlive()) {
+            // basic heal amount; UI can wrap this instead of inventing logic
             player.heal(10);
             afterAction();
         }
@@ -93,14 +101,16 @@ public class GameFacade {
             } else if (!enemy.isAlive()) {
                 log("You defeated the Goblin!");
             }
-        } else if (state instanceof EnemyTurnState) {
-            // enemy automatically attacks and then back to player
-            basicEnemyAttack();
-            if (!isBattleOver()) {
-                state = new PlayerTurnState();
-            }
         }
+        // NOTE:
+        // For the console demo, you can still drive a State machine.
+        // For the JavaFX UI, we will explicitly decide when enemy attacks,
+        // so we do NOT automatically trigger enemy turns here.
     }
+
+    // ---------------------------------------------------------------------
+    // ORIGINAL STATE-BASED ENTRY POINTS (console-oriented)
+    // ---------------------------------------------------------------------
 
     public void playerAttack() {
         state.playerAttack(this);
@@ -109,6 +119,48 @@ public class GameFacade {
     public void playerHeal() {
         state.playerHeal(this);
     }
+
+    // ---------------------------------------------------------------------
+    // UI-FRIENDLY METHODS FOR JavaFX (no rules in GUI)
+    // ---------------------------------------------------------------------
+
+    /**
+     * Basic player attack for UI:
+     * uses the current Strategy (Aggressive + CriticalStrike).
+     */
+    public void uiPlayerBasicAttack() {
+        basicPlayerAttack();
+    }
+
+    /**
+     * Fireball attack for Mage:
+     * temporarily swaps strategy to FireballAttack, then restores.
+     * All mana and punishment logic lives inside Character + FireballAttack.
+     */
+    public void uiPlayerFireballAttack() {
+        if (player == null || enemy == null || !player.isAlive() || !enemy.isAlive()) {
+            return;
+        }
+        AttackStrategy previous = player.getStrategy();
+        try {
+            player.setStrategy(new FireballAttack());
+            basicPlayerAttack();
+        } finally {
+            player.setStrategy(previous);
+        }
+    }
+
+    /**
+     * Heal action for UI:
+     * calls basicPlayerHeal so healing is decided in domain layer.
+     */
+    public void uiPlayerHeal() {
+        basicPlayerHeal();
+    }
+
+    // ---------------------------------------------------------------------
+    // QUERY METHODS
+    // ---------------------------------------------------------------------
 
     public boolean isBattleOver() {
         return player == null || enemy == null || !player.isAlive() || !enemy.isAlive();

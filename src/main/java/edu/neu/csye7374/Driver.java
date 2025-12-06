@@ -2,6 +2,8 @@ package edu.neu.csye7374;
 
 import java.util.Scanner;
 
+import edu.neu.csye7374.javafx.FXLauncher;
+
 /**
  * 
  * @author Yash Zaveri
@@ -9,35 +11,24 @@ import java.util.Scanner;
  */
 
 public class Driver {
-	public static void main(String[] args) {
+    public static void main(String[] args) {
 
-         //Add your code in between these two print statements
-		System.out.println("============Main Execution Start===================\n");
-
+        // Add your code in between these two print statements
+        System.out.println("============ Main Execution Start ===================\n");
         Scanner sc = new Scanner(System.in);
-        System.out.println("Select mode:");
-        System.out.println("1. Console RPG (Demo.gameRun)");
-        System.out.println("2. GUI RPG (GameGUI)");
-        System.out.print("Enter choice (1 or 2): ");
+        System.out.println("1. Console RPG");
+        System.out.println("2. JavaFX RPG");
+        System.out.print("Enter choice: ");
 
-        int choice = 1;
-        try {
-            choice = Integer.parseInt(sc.nextLine().trim());
-        } catch (NumberFormatException e) {
-            choice = 1;
-        }
+        int choice = Integer.parseInt(sc.nextLine().trim());
 
         if (choice == 2) {
-            // Launch Swing GUI on the Event Dispatch Thread
-            javax.swing.SwingUtilities.invokeLater(() -> {
-                GameGUI gui = new GameGUI();
-                gui.setVisible(true);
-            });
+            FXLauncher.main(new String[] {});
         } else {
             Demo.gameRun();
         }
-		 
-		System.out.println("\n\n============Main Execution End===================");
-	}
+
+        System.out.println("\n============ Main Execution End =====================");
+    }
 
 }

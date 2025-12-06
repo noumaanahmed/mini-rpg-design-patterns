@@ -1,30 +1,29 @@
 package edu.neu.csye7374;
 
-/**
- * Design Pattern: Factory
- * -----------------------
- * Centralized creation logic for different character types.
- */
 public class CharacterFactory {
 
     public static Character createCharacter(String type, String name) {
-        CharacterBuilder builder = new CharacterBuilder()
-                .setName(name)
-                .setHealth(100); // Player always starts at 100 HP
 
-        // In this project, types are simple, but this factory is the
-        // extension point for future character classes.
+        CharacterBuilder builder = new CharacterBuilder()
+                .setName(name);
+
+        Character c;
+
         switch (type.toLowerCase()) {
             case "warrior":
-                // Future: adjust stats / equipment
+                c = builder.setHealth(120).build();
+                // Warriors have no mana
                 break;
+
             case "mage":
-                // Future: adjust stats / mana, etc.
+                c = builder.setHealth(80).build();
+                c.setMana(40);   // Mages start with mana
                 break;
+
             default:
-                // Fallback type if input is unknown
-                break;
+                c = builder.setHealth(100).build();
         }
-        return builder.build();
+
+        return c;
     }
 }
