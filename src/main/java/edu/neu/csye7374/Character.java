@@ -5,11 +5,13 @@ import java.util.List;
 
 public class Character {
 
+    private static final int FIREBALL_COST = 10;
+
     private String name;
     private int health;
     private int maxHealth;
 
-    // NEW: Mage-only attribute
+    // MAGE-ONLY ATTRIBUTE
     private int mana = 0;
     private int maxMana = 0;
 
@@ -22,7 +24,9 @@ public class Character {
         this.maxHealth = health;
     }
 
+    // -------------------------
     // MANA SUPPORT
+    // -------------------------
     public void setMana(int mana) {
         this.mana = mana;
         this.maxMana = mana;
@@ -30,6 +34,10 @@ public class Character {
 
     public int getMana() {
         return mana;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
     }
 
     public void reduceMana(int amount) {
@@ -42,14 +50,22 @@ public class Character {
         return mana >= required;
     }
 
+    public boolean canCastFireball() {
+        return hasMana(FIREBALL_COST);
+    }
+
+    // -------------------------
     // OBSERVER
+    // -------------------------
     public void addObserver(GameObserver obs) { observers.add(obs); }
 
     public void notifyObservers(String msg) {
         for (GameObserver obs : observers) obs.onEvent(msg);
     }
 
-    // GETTERS
+    // -------------------------
+    // GETTERS / SETTERS
+    // -------------------------
     public String getName() { return name; }
 
     public int getHealth() { return health; }
@@ -58,8 +74,9 @@ public class Character {
 
     public void setStrategy(AttackStrategy strategy) { this.strategy = strategy; }
 
-    // COMBAT -----------------------------------------------------------------
-
+    // -------------------------
+    // COMBAT
+    // -------------------------
     public void takeDamage(int dmg) {
         if (health <= 0) return;
         health -= dmg;
@@ -92,8 +109,9 @@ public class Character {
 
     public boolean isAlive() { return health > 0; }
 
-    // CUSTOM MAGE ATTACK HELPERS --------------------------------------------
-
+    // -------------------------
+    // CUSTOM MAGE ATTACKS
+    // -------------------------
     public void staffAttack(Character target) {
         int dmg = 5; // weak
         target.takeDamage(dmg);
@@ -101,15 +119,14 @@ public class Character {
     }
 
     public void castFireball(Character target) {
-        int manaCost = 10;
-        if (!hasMana(manaCost)) {
+        if (!canCastFireball()) {
             notifyObservers(name + " has NO MANA and leaves themselves open!");
             // Immediate punishment
             target.attack(this);
             return;
         }
 
-        reduceMana(manaCost);
+        reduceMana(FIREBALL_COST);
         int dmg = 18; // strong spell
         target.takeDamage(dmg);
         notifyObservers(name + " casts FIREBALL for " + dmg + " damage!");

@@ -10,8 +10,10 @@ import javafx.scene.layout.VBox;
  *  - Implements GameObserver
  *  - Pushes log messages into a VBox in the JavaFX UI
  *
- * This keeps the Observer + Bridge pattern in the domain layer,
- * while the GUI just displays messages.
+ * IMPORTANT:
+ *  - Design pattern logs (messages starting with "[Pattern") are
+ *    filtered out here so that only *gameplay effects* show in the GUI.
+ *  - The console (ConsoleLogger) still shows all pattern logs.
  */
 public class FxLogObserver implements GameObserver {
 
@@ -23,9 +25,15 @@ public class FxLogObserver implements GameObserver {
 
     @Override
     public void onEvent(String message) {
+        // Skip pattern explanation logs in the GUI
+        if (message != null && message.startsWith("[Pattern")) {
+            return;
+        }
+
         Platform.runLater(() -> {
             Label line = new Label(stripAnsi(message));
-            line.setStyle("-fx-text-fill: white; -fx-font-size: 13;");
+            // bright, readable log text
+            line.setStyle("-fx-text-fill: #b3e5fc; -fx-font-size: 14;");
 
             logBox.getChildren().add(line);
             // keep last ~8 lines so the box does not overflow
@@ -37,6 +45,7 @@ public class FxLogObserver implements GameObserver {
 
     // Remove ANSI color codes so the GUI text is clean
     private String stripAnsi(String msg) {
+        if (msg == null) return "";
         return msg.replaceAll("\\u001B\\[[;\\d]*m", "");
     }
 }

@@ -1,24 +1,31 @@
 package edu.neu.csye7374.javafx;
 
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
+import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.geometry.Rectangle2D;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.Pane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 public class FXAnimationUtil {
 
-    // -------------------------------------------------
-    // Safe Resource Loader
-    // -------------------------------------------------
+    private static final String ANIM_KEY = "fx_anim_timeline";
+
+    // You can tweak these if you want global scaling later
+    private static final double WARRIOR_SCALE = 2.4;
+    private static final double MAGE_SCALE    = 1.35;
+    private static final double GOBLIN_SCALE  = 1.8;  // <--- goblin slightly smaller
+
+    // ------------------------------------------------------------------------
+    // Shared helpers
+    // ------------------------------------------------------------------------
     private static Image load(String path) {
         return new Image(FXAnimationUtil.class.getResourceAsStream(path));
     }
-
-    // Key in ImageView properties used to store the active Timeline
-    private static final String ANIM_KEY = "fx_anim_timeline";
 
     private static void stopExisting(ImageView view) {
         Object existing = view.getProperties().get(ANIM_KEY);
@@ -31,39 +38,28 @@ public class FXAnimationUtil {
         view.getProperties().put(ANIM_KEY, t);
     }
 
-    // ===================================================================
-    // CHARACTER SELECT: WARRIOR IDLE (CENTERED BOX, UPSCALED)
-    // ===================================================================
+    // ------------------------------------------------------------------------
+    // WARRIOR IDLE
+    // ------------------------------------------------------------------------
     public static void playWarriorIdle(ImageView view, String spriteSheetPath, int speedMs) {
-
         Image sheet = load(spriteSheetPath);
         view.setImage(sheet);
 
-        // Upscale a bit in the character-select card
-        view.setScaleX(2.4);
-        view.setScaleY(2.4);
+        view.setScaleX(WARRIOR_SCALE);
+        view.setScaleY(WARRIOR_SCALE);
 
         final int boxW = 96;
-        final int boxH = 128;
+        final int boxH = 84;
         final int frames = 7;
-
-        final int warriorActualHeight = 96;
-        final int verticalOffset = (boxH - warriorActualHeight) / 2;
 
         Timeline timeline = new Timeline();
         timeline.setCycleCount(Timeline.INDEFINITE);
 
         for (int i = 0; i < frames; i++) {
-            int x = i * 96;
-
+            int x = i * boxW;
             timeline.getKeyFrames().add(
                     new KeyFrame(Duration.millis(speedMs * i), e ->
-                            view.setViewport(new Rectangle2D(
-                                    x,
-                                    -verticalOffset,
-                                    boxW,
-                                    boxH
-                            ))
+                            view.setViewport(new Rectangle2D(x, 0, boxW, boxH))
                     )
             );
         }
@@ -73,16 +69,15 @@ public class FXAnimationUtil {
         timeline.play();
     }
 
-    // ===================================================================
-    // CHARACTER SELECT: MAGE IDLE (CENTERED)
-    // ===================================================================
+    // ------------------------------------------------------------------------
+    // MAGE IDLE
+    // ------------------------------------------------------------------------
     public static void playMageIdle(ImageView view, String spriteSheetPath, int speedMs) {
-
         Image sheet = load(spriteSheetPath);
         view.setImage(sheet);
 
-        view.setScaleX(1.35);
-        view.setScaleY(1.35);
+        view.setScaleX(MAGE_SCALE);
+        view.setScaleY(MAGE_SCALE);
 
         final int boxW = 96;
         final int boxH = 128;
@@ -94,11 +89,9 @@ public class FXAnimationUtil {
         timeline.setCycleCount(Timeline.INDEFINITE);
 
         for (int i = 0; i < xs.length; i++) {
-
             int idx = i;
             int cropW = widths[idx];
             int leftOffset = xs[idx];
-
             int horizontalOffset = (boxW - cropW) / 2;
 
             timeline.getKeyFrames().add(
@@ -118,57 +111,60 @@ public class FXAnimationUtil {
         timeline.play();
     }
 
-    // ===================================================================
-    // SIMPLE SWAP EFFECTS (USED IN TITLE/OLDER CODE)
-    // ===================================================================
+    // ------------------------------------------------------------------------
+    // SIMPLE SWAP HELPERS (fallbacks – used if overlay is null)
+    // ------------------------------------------------------------------------
     public static void playAttack(ImageView view, String spritePath) {
-
         Image attack = load(spritePath);
-        Image idle = view.getImage();
+        Image idle   = view.getImage();
 
         Platform.runLater(() -> view.setImage(attack));
 
-        Timeline t = new Timeline(new KeyFrame(Duration.millis(300), e ->
-                Platform.runLater(() -> view.setImage(idle))
-        ));
+        Timeline t = new Timeline(
+                new KeyFrame(Duration.millis(420), e ->
+                        Platform.runLater(() -> view.setImage(idle))
+                )
+        );
         stopExisting(view);
         storeTimeline(view, t);
         t.play();
     }
 
     public static void playFireball(ImageView view, String spritePath) {
-
         Image fireball = load(spritePath);
-        Image idle = view.getImage();
+        Image idle     = view.getImage();
 
         Platform.runLater(() -> view.setImage(fireball));
 
-        Timeline t = new Timeline(new KeyFrame(Duration.millis(550), e ->
-                Platform.runLater(() -> view.setImage(idle))
-        ));
+        Timeline t = new Timeline(
+                new KeyFrame(Duration.millis(650), e ->
+                        Platform.runLater(() -> view.setImage(idle))
+                )
+        );
         stopExisting(view);
         storeTimeline(view, t);
         t.play();
     }
 
     public static void playHeal(ImageView view, String spritePath) {
-
         Image heal = load(spritePath);
         Image idle = view.getImage();
 
         Platform.runLater(() -> view.setImage(heal));
 
-        Timeline t = new Timeline(new KeyFrame(Duration.millis(600), e ->
-                Platform.runLater(() -> view.setImage(idle))
-        ));
+        Timeline t = new Timeline(
+                new KeyFrame(Duration.millis(580), e ->
+                        Platform.runLater(() -> view.setImage(idle))
+                )
+        );
         stopExisting(view);
         storeTimeline(view, t);
         t.play();
     }
 
-    // ===================================================================
-    // GENERIC HORIZONTAL SHEET PLAYER (BATTLE)
-    // ===================================================================
+    // ------------------------------------------------------------------------
+    // GENERIC SHEET PLAYER (UNIFORM FRAMES)
+    // ------------------------------------------------------------------------
     private static Timeline playSheet(
             ImageView view,
             String spritePath,
@@ -187,14 +183,14 @@ public class FXAnimationUtil {
         for (int i = 0; i < frames; i++) {
             final int idx = i;
             timeline.getKeyFrames().add(
-                    new KeyFrame(Duration.millis(1000.0 / fps * i), e -> {
-                        view.setViewport(new Rectangle2D(
-                                idx * frameWidth,
-                                yOffset,
-                                frameWidth,
-                                frameHeight
-                        ));
-                    })
+                    new KeyFrame(Duration.millis(1000.0 / fps * i), e ->
+                            view.setViewport(new Rectangle2D(
+                                    idx * frameWidth,
+                                    yOffset,
+                                    frameWidth,
+                                    frameHeight
+                            ))
+                    )
             );
         }
 
@@ -209,132 +205,268 @@ public class FXAnimationUtil {
         return timeline;
     }
 
-    // ===================================================================
-    // GOBLIN (BATTLE)
-    // Sheets: 2048 × 256, 8 frames of 256 × 256
-    // ===================================================================
-    public static void playGoblinIdle(ImageView view, String spritePath, int speedMs) {
-        int fps = Math.max(4, 1000 / speedMs); // around 7–8 fps for 130 ms
-        playSheet(view, spritePath, 256, 256, 0, 8, fps, true, null);
+    // ------------------------------------------------------------------------
+    // HERO ATTACKS (ANIMATED, FULL CYCLES)
+    // ------------------------------------------------------------------------
+    public static void playWarriorAttack(ImageView view,
+                                         String spritePath,
+                                         String idlePath) {
+        view.setScaleX(WARRIOR_SCALE);
+        view.setScaleY(WARRIOR_SCALE);
+        // 6 frames, 96x84
+        playSheet(view, spritePath, 96, 84, 0, 6, 11, false,
+                () -> playWarriorIdle(view, idlePath, 200));
+    }
+
+    public static void playMageStaffAttack(ImageView view,
+                                           String spritePath,
+                                           String idlePath) {
+        view.setScaleX(MAGE_SCALE);
+        view.setScaleY(MAGE_SCALE);
+        // 4 frames, slightly slower so it's readable
+        playSheet(view, spritePath, 128, 128, 0, 4, 7, false,
+                () -> playMageIdle(view, idlePath, 200));
+    }
+
+    public static void playMageFireball(ImageView view,
+                                        String spritePath,
+                                        String idlePath) {
+        view.setScaleX(MAGE_SCALE);
+        view.setScaleY(MAGE_SCALE);
+        // 14 frames, full breath cycle
+        playSheet(view, spritePath, 128, 128, 0, 14, 14, false,
+                () -> playMageIdle(view, idlePath, 200));
+    }
+
+    // ------------------------------------------------------------------------
+    // GOBLIN (battle) — facing LEFT, slightly smaller
+    // ------------------------------------------------------------------------
+    public static void playGoblinIdle(ImageView view, String spritePath, int speedIgnored) {
+        int fps = 8;
+        view.setScaleX(-GOBLIN_SCALE); // negative → flipped left
+        view.setScaleY(GOBLIN_SCALE);
+
+        playSheet(view, spritePath, 256, 256, 0, 3, fps, true, null);
     }
 
     public static void playGoblinAttack(ImageView view, String attackSheet, String idleSheet) {
-        playSheet(view, attackSheet, 256, 256, 0, 8, 12, false,
-                () -> playGoblinIdle(view, idleSheet, 130));
+        view.setScaleX(-GOBLIN_SCALE);
+        view.setScaleY(GOBLIN_SCALE);
+
+        playSheet(view, attackSheet, 256, 256, 0, 7, 11, false,
+                () -> playGoblinIdle(view, idleSheet, 0));
     }
 
     public static void playGoblinHurt(ImageView view, String hurtSheet, String idleSheet) {
-        playSheet(view, hurtSheet, 256, 256, 0, 8, 10, false,
-                () -> playGoblinIdle(view, idleSheet, 130));
+        view.setScaleX(-GOBLIN_SCALE);
+        view.setScaleY(GOBLIN_SCALE);
+
+        playSheet(view, hurtSheet, 256, 256, 0, 7, 8, false,
+                () -> playGoblinIdle(view, idleSheet, 0));
     }
 
     public static void playGoblinDeath(ImageView view, String deathSheet) {
-        // Stop on last frame
-        playSheet(view, deathSheet, 256, 256, 0, 8, 10, false, null);
+        view.setScaleX(-GOBLIN_SCALE);
+        view.setScaleY(GOBLIN_SCALE);
+
+        playSheet(view, deathSheet, 256, 256, 0, 8, 8, false, null);
     }
 
-    // ===================================================================
-    // MAGE (BATTLE)
-    // mage_staff_attack : 512 × 128 (4 frames)
-    // mage_fireball_cast: 1792 × 128 (14 frames)
-    // mage_hurt         : 384 × 128 (3 frames)
-    // mage_dead         : 768 × 256 (6 frames -> 128×256 each)
-    // ===================================================================
-    public static void playMageStaffAttack(ImageView view, String staffSheet, String idleSheet) {
-        // 4 frames of 128×128
-        playSheet(view, staffSheet, 128, 128, 0, 4, 12, false,
-                () -> playMageIdle(view, idleSheet, 130));
-    }
+    // ------------------------------------------------------------------------
+    // WARRIOR HURT / DEATH
+    // ------------------------------------------------------------------------
+    public static void playWarriorHurt(ImageView view, String hurtSheet, String idleSheet) {
+        view.setScaleX(WARRIOR_SCALE);
+        view.setScaleY(WARRIOR_SCALE);
 
-    public static void playMageFireballAttack(ImageView view, String fireSheet, String idleSheet) {
-        playSheet(view, fireSheet, 128, 128, 0, 14, 18, false,
-                () -> playMageIdle(view, idleSheet, 130));
-    }
-
-    public static void playMageHurt(ImageView view, String hurtSheet, String idleSheet) {
-        // tiny crouch effect while hurt
         double originalY = view.getTranslateY();
         view.setTranslateY(originalY + 6);
 
-        playSheet(view, hurtSheet, 128, 128, 0, 3, 10, false, () -> {
+        playSheet(view, hurtSheet, 96, 84, 0, 4, 10, false, () -> {
             view.setTranslateY(originalY);
-            playMageIdle(view, idleSheet, 130);
+            playWarriorIdle(view, idleSheet, 200);
+        });
+    }
+
+    public static void playWarriorDeath(ImageView view, String deathSheet) {
+        view.setScaleX(WARRIOR_SCALE);
+        view.setScaleY(WARRIOR_SCALE);
+        playSheet(view, deathSheet, 96, 84, 0, 10, 8, false, null);
+    }
+
+    // ------------------------------------------------------------------------
+    // MAGE HURT / DEATH
+    // ------------------------------------------------------------------------
+    public static void playMageHurt(ImageView view, String hurtSheet, String idleSheet) {
+        view.setScaleX(MAGE_SCALE);
+        view.setScaleY(MAGE_SCALE);
+
+        double originalY = view.getTranslateY();
+        view.setTranslateY(originalY + 6);
+
+        // slightly slower than before so the hurt is readable
+        playSheet(view, hurtSheet, 128, 128, 0, 3, 8, false, () -> {
+            view.setTranslateY(originalY);
+            playMageIdle(view, idleSheet, 200);
         });
     }
 
     public static void playMageDeath(ImageView view, String deathSheet) {
-        // Keep last frame (falls down)
-        playSheet(view, deathSheet, 128, 256, 0, 6, 10, false, null);
+        view.setScaleX(MAGE_SCALE);
+        view.setScaleY(MAGE_SCALE);
+        playSheet(view, deathSheet, 128, 128, 0, 6, 8, false, null);
     }
 
-    // ===================================================================
-    // WARRIOR (BATTLE)
-    // warrior_hurt: 384 × 84 (4 frames, 96×84)
-    // For death we reuse hurt sheet and just stop at last frame.
-    // ===================================================================
-    public static void playWarriorAttack(ImageView view, String attackSheet, String idleSheet) {
-        // attack sheet assumed 4 frames of 96×96
-        playSheet(view, attackSheet, 96, 96, 0, 4, 12, false,
-                () -> playWarriorIdle(view, idleSheet, 130));
-    }
-
-    public static void playWarriorHurt(ImageView view, String hurtSheet, String idleSheet) {
-
-        double originalY = view.getTranslateY();
-        view.setTranslateY(originalY + 6);
-
-        // 4 frames of 96×84, vertically offset so feet line up
-        int offsetY = 0;
-        playSheet(view, hurtSheet, 96, 84, offsetY, 4, 10, false, () -> {
-            view.setTranslateY(originalY);
-            playWarriorIdle(view, idleSheet, 130);
-        });
-    }
-
-    public static void playWarriorDeath(ImageView view, String hurtSheet) {
-        // reuse hurt sheet and stay on last frame
-        playSheet(view, hurtSheet, 96, 84, 0, 4, 10, false, null);
-    }
-
-    // ===================================================================
-    // HEAL OVERLAY (BATTLE)
-    // ===================================================================
+    // ------------------------------------------------------------------------
+    // HEAL AURA OVERLAY (sprite sheet)
+    // ------------------------------------------------------------------------
     public static void playHealOverlay(ImageView heroView,
                                        ImageView overlayView,
                                        String auraPath) {
+        playHealingAura(heroView, overlayView, auraPath, null);
+    }
+
+    public static void playHealingAura(ImageView heroView,
+                                       ImageView overlayView,
+                                       String auraSheetPath,
+                                       Pane battlePane) {
 
         if (overlayView == null) {
-            // Fallback to old behaviour if overlay not wired
-            playHeal(heroView, auraPath);
+            playHeal(heroView, auraSheetPath);
             return;
         }
 
-        Image aura = load(auraPath);
-        overlayView.setImage(aura);
-
-        // Match hero size / position
+        Image auraSheet = load(auraSheetPath);
+        overlayView.setImage(auraSheet);
         overlayView.setVisible(true);
-        overlayView.setOpacity(0.0);
-        overlayView.setFitWidth(heroView.getFitWidth());
-        overlayView.setPreserveRatio(true);
-        overlayView.setLayoutX(heroView.getLayoutX());
+        overlayView.setOpacity(1.0);
+        overlayView.setPreserveRatio(false);
 
-        // Place the aura roughly at the hero's feet instead of above the head
-        // offset ~ +45px from hero top; adjust if you want it lower/higher
-        overlayView.setLayoutY(heroView.getLayoutY() + 45);
+        double heroWidth  = heroView.getFitWidth()  > 0 ? heroView.getFitWidth()
+                : heroView.getBoundsInParent().getWidth();
+        double heroHeight = heroView.getFitHeight() > 0 ? heroView.getFitHeight()
+                : heroView.getBoundsInParent().getHeight();
 
-        Timeline t = new Timeline(
-                new KeyFrame(Duration.millis(0),
-                        e -> overlayView.setOpacity(0.0)),
-                new KeyFrame(Duration.millis(150),
-                        e -> overlayView.setOpacity(0.9)),
-                new KeyFrame(Duration.millis(550),
-                        e -> overlayView.setOpacity(0.0))
-        );
-        t.setOnFinished(e -> overlayView.setVisible(false));
+        double auraWidth  = heroWidth * 1.4;
+        double auraHeight = heroHeight * 0.45;
+
+        overlayView.setFitWidth(auraWidth);
+        overlayView.setFitHeight(auraHeight);
+
+        double heroCenterX = heroView.getLayoutX() + heroWidth / 2.0;
+        double heroBottomY = heroView.getLayoutY() + heroHeight;
+
+        overlayView.setLayoutX(heroCenterX - auraWidth / 2.0);
+        overlayView.setLayoutY(heroBottomY - auraHeight * 0.6);
+
+        final int frames = 8;
+        final int frameW = 72;
+        final int frameH = 72;
+        final int fps = 10;
+        final double frameDuration = 1000.0 / fps;
+
+        Timeline sheetTimeline = new Timeline();
+        for (int i = 0; i < frames; i++) {
+            final int idx = i;
+            sheetTimeline.getKeyFrames().add(
+                    new KeyFrame(Duration.millis(frameDuration * i), e ->
+                            overlayView.setViewport(new Rectangle2D(
+                                    idx * frameW,
+                                    0,
+                                    frameW,
+                                    frameH
+                            ))
+                    )
+            );
+        }
+
+        sheetTimeline.setCycleCount(2);
+        sheetTimeline.setOnFinished(e -> overlayView.setVisible(false));
 
         stopExisting(overlayView);
-        storeTimeline(overlayView, t);
-        t.play();
+        storeTimeline(overlayView, sheetTimeline);
+        sheetTimeline.play();
+    }
+
+    // ------------------------------------------------------------------------
+    // (These helpers are currently unused but kept for extensibility)
+    // ------------------------------------------------------------------------
+    private static void createGlowPulse(ImageView heroView,
+                                       Pane battlePane,
+                                       double auraWidth,
+                                       double auraHeight) {
+
+        if (battlePane == null) return;
+
+        double heroWidth  = heroView.getFitWidth()  > 0 ? heroView.getFitWidth()
+                : heroView.getBoundsInParent().getWidth();
+        double heroHeight = heroView.getFitHeight() > 0 ? heroView.getFitHeight()
+                : heroView.getBoundsInParent().getHeight();
+
+        double heroCenterX = heroView.getLayoutX() + heroWidth / 2.0;
+        double heroBottomY = heroView.getLayoutY() + heroHeight;
+
+        Rectangle glow = new Rectangle(auraWidth * 1.15, auraHeight * 1.3);
+        glow.setArcWidth(18);
+        glow.setArcHeight(18);
+        glow.setFill(Color.web("#7CFF8A", 0.45));
+
+        glow.setLayoutX(heroCenterX - glow.getWidth() / 2.0);
+        glow.setLayoutY(heroBottomY - glow.getHeight());
+
+        int overlayIndex = battlePane.getChildren().indexOf(heroView);
+        if (overlayIndex >= 0) {
+            battlePane.getChildren().add(overlayIndex, glow);
+        } else {
+            battlePane.getChildren().add(glow);
+        }
+
+        Timeline glowTimeline = new Timeline(
+                new KeyFrame(Duration.millis(0),    e -> glow.setOpacity(0.0)),
+                new KeyFrame(Duration.millis(120),  e -> glow.setOpacity(0.9)),
+                new KeyFrame(Duration.millis(700),  e -> glow.setOpacity(0.0))
+        );
+        glowTimeline.setOnFinished(e -> battlePane.getChildren().remove(glow));
+        glowTimeline.play();
+    }
+
+    private static void createFloatingText(ImageView heroView,
+                                           Pane battlePane,
+                                           String text) {
+
+        if (battlePane == null) return;
+
+        double heroWidth  = heroView.getFitWidth()  > 0 ? heroView.getFitWidth()
+                : heroView.getBoundsInParent().getWidth();
+        double heroHeight = heroView.getFitHeight() > 0 ? heroView.getFitHeight()
+                : heroView.getBoundsInParent().getHeight();
+
+        double heroCenterX = heroView.getLayoutX() + heroWidth / 2.0;
+        double heroTopY    = heroView.getLayoutY();
+
+        Label hpLabel = new Label(text);
+        hpLabel.setStyle(
+                "-fx-text-fill: #99ff99;" +
+                "-fx-font-size: 18;" +
+                "-fx-font-weight: bold;" +
+                "-fx-effect: dropshadow(one-pass-box, black, 4, 0, 0, 0);"
+        );
+
+        hpLabel.setLayoutX(heroCenterX - 24);
+        hpLabel.setLayoutY(heroTopY - 10);
+
+        battlePane.getChildren().add(hpLabel);
+
+        TranslateTransition moveUp = new TranslateTransition(Duration.millis(700), hpLabel);
+        moveUp.setFromY(0);
+        moveUp.setToY(-25);
+
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(700), hpLabel);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+
+        ParallelTransition combo = new ParallelTransition(moveUp, fadeOut);
+        combo.setOnFinished(e -> battlePane.getChildren().remove(hpLabel));
+        combo.play();
     }
 }
