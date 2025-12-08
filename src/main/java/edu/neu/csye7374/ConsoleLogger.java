@@ -22,6 +22,8 @@ public class ConsoleLogger implements GameObserver {
 
     public ConsoleLogger(String name) {
         this.name = name;
+            onEvent("[Pattern][Bridge] ConsoleLogger attached for '" + name + "'.");
+
     }
 
     @Override

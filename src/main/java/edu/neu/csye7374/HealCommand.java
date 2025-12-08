@@ -15,8 +15,16 @@ public class HealCommand implements Command {
         this.amount = amount;
     }
 
-    @Override
-    public void execute() {
-        target.heal(amount);
-    }
+@Override
+public void execute() {
+    if (target == null) return;
+
+    target.notifyObservers(
+        "[Pattern][Command] HealCommand.execute() invoked for "
+        + target.getName()
+    );
+
+    target.heal(amount);
+}
+
 }

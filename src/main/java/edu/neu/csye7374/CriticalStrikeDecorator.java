@@ -12,16 +12,31 @@ public class CriticalStrikeDecorator extends AttackDecorator {
 
     @Override
     public void execute(Character self, Character target) {
-        inner.execute(self, target);
-        if (target != null && target.isAlive()) {
-            // 30% chance for extra 5 damage
-            if (rand.nextInt(100) < 30) {
-                int extra = 5;
-                target.takeDamage(extra);
-                self.notifyObservers("\u001B[35mCritical strike! "
-                        + self.getName() + " dealt extra " + extra + " damage!\u001B[0m");
-            }
+
+        if (self == null || target == null || !self.isAlive() || !target.isAlive()) {
+            return;
         }
+
+        // 1️⃣ Perform base attack first
+        int before = target.getHealth();
+        inner.execute(self, target);
+        int baseDamage = before - target.getHealth();
+
+        // If the target took 0 damage, skip crit check
+        if (baseDamage <= 0) return;
+
+        // 2️⃣ Roll for critical hit (30% default)
+if (rand.nextInt(100) < 30) {
+    int extra = Math.max(2, (int) (baseDamage * 0.5)); // 50% bonus
+    target.takeDamage(extra);
+
+    // 🔹 Design-pattern log (Decorator wrapping Strategy)
+    self.notifyObservers(
+            "[Pattern][Decorator][Strategy] 💥 Critical strike! Extra "
+                    + extra + " damage!"
+    );
+}
+
     }
 
     @Override

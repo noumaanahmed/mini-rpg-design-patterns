@@ -1,5 +1,7 @@
 package edu.neu.csye7374;
 
+import edu.neu.csye7374.engine.GameEngine;
+
 public class GameFacade {
 
     private Character player;
@@ -8,10 +10,13 @@ public class GameFacade {
     private GameState state;
     private GameObserver observer;
 
+    // Engine that handles all combat logic
+    private GameEngine engine = new GameEngine(this);
+
     private final GameConfig config = GameConfig.getInstance();
 
     public GameFacade() {
-        this.state = new GameOverState(); // until a game starts
+        this.state = new GameOverState(); // Until game starts
     }
 
     public void setObserver(GameObserver observer) {
@@ -24,108 +29,138 @@ public class GameFacade {
         }
     }
 
-    // ---------------------------------------------------------
-    // START NEW GAME (FACTORY + BUILDER + STRATEGY + OBSERVER)
-    // ---------------------------------------------------------
+    public GameEngine getEngine() {
+        return engine;
+    }
+
+    // --------------------------------------------------------------------
+    // START NEW GAME (Factory + Builder + Strategy + Observer)
+    // --------------------------------------------------------------------
     public void startNewGame(String name, String type, int difficulty) {
+
+        // Reset engine for new battle
+        engine = new GameEngine(this);
+
         config.setDifficulty(difficulty);
-        log("[Pattern: Singleton] Difficulty stored in GameConfig = " + difficulty);
+        log("[Pattern][Singleton] Difficulty stored: " + difficulty);
 
-        // Factory for player
+        // --- Player via Factory ---
         player = CharacterFactory.createCharacter(type, name);
-        log("[Pattern: Factory] Player created via CharacterFactory as '" + type
-                + "' named '" + player.getName() + "'.");
+        log("[Pattern][Factory] Created Player: " + type + " named " + name);
 
-        // Builder for enemy
-        int goblinHP;
-        switch (difficulty) {
-            case 1: goblinHP = 50; break;
-            case 2: goblinHP = 80; break;
-            case 3: goblinHP = 120; break;
-            default: goblinHP = 80;
-        }
+        // --- Enemy HP by difficulty ---
+        int goblinHP = switch (difficulty) {
+            case 1 -> 50;
+            case 2 -> 80;
+            case 3 -> 120;
+            default -> 80;
+        };
 
-        CharacterBuilder enemyBuilder = new CharacterBuilder()
+        // --- Enemy via Builder ---
+        enemy = new CharacterBuilder()
                 .setName("Goblin")
-                .setHealth(goblinHP);
-        enemy = enemyBuilder.build();
-        log("[Pattern: Builder] Enemy 'Goblin' built via CharacterBuilder with HP = " + goblinHP + ".");
+                .setHealth(goblinHP)
+                .build();
 
-        // Observer wiring (Bridge to console / GUI)
+        log("[Pattern][Builder] Enemy created with HP " + goblinHP);
+
+        // --- Observer wiring ---
         if (observer != null) {
             player.addObserver(observer);
             enemy.addObserver(observer);
-            log("[Pattern: Observer] Attached shared GameObserver to player and enemy.");
+            log("[Pattern][Observer] Attached shared observer.");
         }
 
-        // -----------------------------------------------------
+        // ---------------------------------------------------------
         // Strategy + Decorator setup
-        //  - Warrior: Aggressive + CriticalStrikeDecorator
-        //  - Mage   : Aggressive (no crit; uses explicit staff/fireball API)
-        // -----------------------------------------------------
-        AttackStrategy baseAggressive = new AggressiveAttack();
+        // ---------------------------------------------------------
+        AttackStrategy aggressive = new AggressiveAttack();
+
         if ("warrior".equalsIgnoreCase(type)) {
-            player.setStrategy(new CriticalStrikeDecorator(baseAggressive));
-            log("[Pattern: Strategy + Decorator] Warrior uses CriticalStrikeDecorator(AggressiveAttack).");
+            player.setStrategy(new CriticalStrikeDecorator(aggressive));
+            log("[Pattern][Strategy + Decorator] Warrior uses CriticalStrike(Aggressive).");
         } else {
-            player.setStrategy(baseAggressive);
-            log("[Pattern: Strategy] Mage uses AggressiveAttack (staff/fireball handled explicitly).");
+            player.setStrategy(aggressive);
+            log("[Pattern][Strategy] Mage uses AggressiveAttack.");
         }
 
-        // Enemy always aggressive
         enemy.setStrategy(new AggressiveAttack());
-        log("[Pattern: Strategy] Enemy strategy = AggressiveAttack.");
+        log("[Pattern][Strategy] Goblin uses AggressiveAttack.");
 
         state = new PlayerTurnState();
 
-        log("New game started: " + player.getName() + " vs Goblin");
-        log("Difficulty: " + difficulty + " | Goblin HP: " + goblinHP);
+        log("[Pattern][State] Game Started: " + player.getName() + " vs Goblin (HP: " + goblinHP + ")");
     }
 
-    // ---------------------------------------------------------
-    // TEMPLATE-ISH "BASIC" ACTIONS (domain only)
-    // ---------------------------------------------------------
-    void basicPlayerAttack() {
-        if (player != null && enemy != null && player.isAlive() && enemy.isAlive()) {
-            player.attack(enemy);
-            afterAction();
-        }
+ // --------------------------------------------------------------------
+// ACTIONS (called by GameEngine AFTER resolving logic)
+// --------------------------------------------------------------------
+public int guiPlayerSwordOrStaffAttack(boolean isMage) {
+    if (!validCombat()) return 0;
+
+    // 🔹 Facade pattern log
+    log("[Pattern][Facade] Player triggered BASIC_ATTACK via GameFacade.");
+
+    int damage = engine.processPlayerAttack(isMage);
+    afterAction();
+    return Math.max(damage, 0);
+}
+
+public int guiPlayerFireballAttack() {
+    if (!validCombat()) return 0;
+
+    // 🔹 Facade pattern log
+    log("[Pattern][Facade] Player triggered FIREBALL via GameFacade.");
+
+    int dmg = engine.processPlayerFireball();
+    afterAction();
+    return Math.max(dmg, 0);
+}
+
+public int guiPlayerHeal() {
+    if (!player.isAlive()) return 0;
+
+    // 🔹 Facade pattern log
+    log("[Pattern][Facade] Player triggered HEAL via GameFacade.");
+
+    int healed = engine.processPlayerHeal();
+    afterAction();
+    return healed;
+}
+
+public int guiEnemyAttack() {
+    if (!validCombat()) return 0;
+
+    // 🔹 Facade pattern log
+    log("[Pattern][Facade] Enemy turn processed via GameFacade.");
+
+    int dmg = engine.processEnemyAttack();
+    afterAction();
+    return Math.max(dmg, 0);
+}
+
+    // --------------------------------------------------------------------
+    // INTERNAL HELPERS
+    // --------------------------------------------------------------------
+    private boolean validCombat() {
+        return player != null && enemy != null &&
+               player.isAlive() && enemy.isAlive();
     }
 
-    void basicPlayerHeal() {
-        if (player != null && player.isAlive()) {
-            player.heal(10);
-            afterAction();
-        }
-    }
-
-    void basicEnemyAttack() {
-        if (enemy != null && player != null && enemy.isAlive() && player.isAlive()) {
-            log("Enemy turn:");
-            enemy.attack(player);
-            afterAction();
-        }
-    }
-
-    // ---------------------------------------------------------
-    // AFTER ANY ACTION (Template-like end-of-turn handling)
-    // ---------------------------------------------------------
     private void afterAction() {
         if (isBattleOver()) {
             state = new GameOverState();
             if (!player.isAlive()) {
-                log("You were defeated!");
+                log("⚠ You were defeated.");
             } else if (!enemy.isAlive()) {
-                log("You defeated the Goblin!");
+                log("🏆 You defeated the Goblin!");
             }
-        } else if (state instanceof EnemyTurnState) {
-            log("[Pattern: State] EnemyTurnState would auto-attack here (console/alt flows).");
         }
     }
 
-    // ---------------------------------------------------------
-    // STATE-DRIVEN ENTRY POINTS (console version)
-    // ---------------------------------------------------------
+    // --------------------------------------------------------------------
+    // CONSOLE STATE INTERFACE SUPPORT
+    // --------------------------------------------------------------------
     public void playerAttack() {
         state.playerAttack(this);
     }
@@ -134,78 +169,22 @@ public class GameFacade {
         state.playerHeal(this);
     }
 
-    // ---------------------------------------------------------
-    // SIMPLE QUERY HELPERS
-    // ---------------------------------------------------------
     public boolean isBattleOver() {
-        return player == null || enemy == null || !player.isAlive() || !enemy.isAlive();
+        return player == null || enemy == null ||
+                !player.isAlive() || !enemy.isAlive();
     }
 
-    public Character getPlayer() {
-        return player;
-    }
+    public Character getPlayer() { return player; }
+    public Character getEnemy() { return enemy; }
 
-    public Character getEnemy() {
-        return enemy;
-    }
+public GameState getState() { return state; }
 
-    public GameState getState() {
-        return state;
-    }
+void setState(GameState newState) {
+    if (newState == null) return;
+    String oldName = (state == null) ? "null" : state.getName();
+    String newName = newState.getName();
+    this.state = newState;
+    log("[Pattern][State] Transition: " + oldName + " -> " + newName);
+}
 
-    void setState(GameState state) {
-        this.state = state;
-    }
-
-    // ---------------------------------------------------------
-    // 🔹 GUI-FRIENDLY FACADE METHODS (NO UI CODE HERE)
-    // ---------------------------------------------------------
-
-    /** Warrior or Mage basic physical attack (sword or staff). */
-    public void guiPlayerSwordOrStaffAttack(boolean isMage) {
-        if (player == null || enemy == null || !player.isAlive() || !enemy.isAlive()) return;
-
-        if (isMage) {
-            log("[Pattern: Facade] Mage staff attack triggered from GUI.");
-            log("[Pattern: Observer] Damage + events broadcast via Character.notifyObservers().");
-            player.staffAttack(enemy);
-        } else {
-            // Warrior: use whatever Strategy is currently set (Aggressive+Crit)
-            log("[Pattern: Strategy + Decorator] Warrior uses its Strategy (Aggressive+Crit) via player.attack().");
-            player.attack(enemy);
-        }
-        afterAction();
-    }
-
-    /** Mage fireball attack (uses Strategy + mana in Character). */
-    public void guiPlayerFireballAttack() {
-        if (player == null || enemy == null || !player.isAlive() || !enemy.isAlive()) return;
-
-        log("[Pattern: Strategy] Switching to FireballAttack for this action.");
-        AttackStrategy prev = player.getStrategy();
-        player.setStrategy(new FireballAttack());
-        player.attack(enemy); // Character.castFireball handles mana + punishment.
-        player.setStrategy(prev);
-        afterAction();
-    }
-
-    /** Player heal – uses HealCommand to demonstrate Command pattern. */
-    public void guiPlayerHeal() {
-        if (player == null || !player.isAlive()) return;
-
-        int amount = 12;
-        log("[Pattern: Command] HealCommand(" + amount + ") executed via GameFacade.");
-        new HealCommand(player, amount).execute();
-        afterAction();
-    }
-
-    /** Goblin attack – GUI just calls this, logic stays here. */
-    public void guiEnemyAttack() {
-        if (enemy == null || player == null || !enemy.isAlive() || !player.isAlive()) return;
-
-        log("[Pattern: Strategy] Enemy uses AggressiveAttack via Strategy.");
-        enemy.setStrategy(new AggressiveAttack());
-        enemy.attack(player);
-        afterAction();
-    }
 }

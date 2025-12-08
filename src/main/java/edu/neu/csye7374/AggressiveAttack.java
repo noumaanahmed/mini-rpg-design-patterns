@@ -5,18 +5,19 @@ public class AggressiveAttack implements AttackStrategy {
     @Override
     public void execute(Character self, Character target) {
 
-        if (self.getMana() > 0) {
-            // Mage auto chooses fireball OR staff depending on UI
-            self.staffAttack(target);
-        } 
-        else {
-            // Warrior or Mage with no mana
-            int dmg = 12; // warrior baseline
-            target.takeDamage(dmg);
-            self.notifyObservers(self.getName() + " strikes powerfully for " + dmg + " damage!");
+        if (self == null || target == null || !self.isAlive() || !target.isAlive()) {
+            return;
         }
-    }
 
+        // Basic physical attack for either Warrior or Mage
+        // Random damage is determined inside Character
+        int dmg = self.staffAttack(target);  // Staff & Sword now share same base logic
+
+        self.notifyObservers("[Pattern][Strategy] " + self.getName()
+                        + " attacked aggressively (" + dmg + " dmg).");
+    }
     @Override
-    public String getName() { return "Aggressive"; }
+    public String getName() {
+        return "Aggressive";
+    }
 }

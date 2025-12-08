@@ -4,7 +4,26 @@ public class PlayerTurnState implements GameState {
 
     @Override
     public void playerAttack(GameFacade game) {
-        game.basicPlayerAttack();
+        if (game == null || game.isBattleOver()) {
+            return;
+        }
+            game.log("[Pattern][State] PlayerTurnState handling playerAttack().");
+
+
+        Character player = game.getPlayer();
+        Character enemy  = game.getEnemy();
+
+        if (player == null || enemy == null || !player.isAlive() || !enemy.isAlive()) {
+            return;
+        }
+
+        // Infer Mage vs Warrior by mana pool
+        boolean isMage = player.getMaxMana() > 0;
+
+        // Use the GUI-friendly Facade API (no FX code here)
+        game.guiPlayerSwordOrStaffAttack(isMage);
+
+        // Turn transition
         if (game.isBattleOver()) {
             game.setState(new GameOverState());
         } else {
@@ -14,7 +33,21 @@ public class PlayerTurnState implements GameState {
 
     @Override
     public void playerHeal(GameFacade game) {
-        game.basicPlayerHeal();
+        if (game == null || game.isBattleOver()) {
+            return;
+        }
+            game.log("[Pattern][State] PlayerTurnState handling playerHeal().");
+
+
+        Character player = game.getPlayer();
+        if (player == null || !player.isAlive()) {
+            return;
+        }
+
+        // Heal via Facade
+        game.guiPlayerHeal();
+
+        // Turn transition
         if (game.isBattleOver()) {
             game.setState(new GameOverState());
         } else {

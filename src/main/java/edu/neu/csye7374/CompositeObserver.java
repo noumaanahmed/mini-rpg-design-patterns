@@ -12,6 +12,13 @@ public class CompositeObserver implements GameObserver {
 
     public CompositeObserver(GameObserver... observers) {
         this.observers = observers;
+
+            if (observers != null && observers.length > 0 && observers[0] != null) {
+        observers[0].onEvent(
+            "[Pattern][Composite] CompositeObserver wiring "
+            + observers.length + " observers."
+        );
+    }
     }
 
     @Override

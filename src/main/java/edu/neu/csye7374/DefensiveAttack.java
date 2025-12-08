@@ -11,16 +11,24 @@ public class DefensiveAttack implements AttackStrategy {
 
     private final Random rand = new Random();
 
-    @Override
-    public void execute(Character self, Character target) {
-        if (!self.isAlive()) return;
-
-        int healAmt = rand.nextInt(7) + 8; // 8–14 inclusive
-        self.heal(healAmt);
-        self.notifyObservers(
-                self.getName() + " focused defensively and healed "
-                        + healAmt + " HP!");
+@Override
+public void execute(Character attacker, Character target) {
+    if (attacker == null || target == null || !attacker.isAlive()) {
+        return;
     }
+    int dmg = attacker.staffAttack(target) - 2;
+    if (dmg < 0) dmg = 0;
+
+    attacker.notifyObservers(
+        "[Pattern][Strategy] " + attacker.getName()
+        + " attacks defensively (" + dmg + " dmg)."
+    );
+
+    if (dmg > 0) {
+        target.takeDamage(dmg);
+    }
+}
+
 
     @Override
     public String getName() {
