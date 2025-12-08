@@ -271,7 +271,7 @@ public class FXBattleController {
 
         heroDead     = playerType.equals("mage")
                 ? "/edu/neu/csye7374/assets/sprites/mage_dead.png"
-                : "/edu/neu/csye7374/assets/sprites/warrior_dead.png";
+                : "/edu/neu/csye7374/assets/sprites/warrior_death.png";
     }
 
     // ---------------------------------------------------------
