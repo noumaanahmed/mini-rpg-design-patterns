@@ -1,0 +1,15 @@
+/* Make ScrollPane fully transparent */
+.log-scroll {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+/* Make ScrollPane viewport transparent */
+.log-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Remove ScrollPane corners (bottom-right filler) */
+.log-scroll > .corner {
+    -fx-background-color: transparent;
+}

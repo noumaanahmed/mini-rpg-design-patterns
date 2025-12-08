@@ -6,7 +6,16 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.Pane?>
 
-<AnchorPane prefHeight="500" prefWidth="727.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="edu.neu.csye7374.javafx.FXTitleController">
+<AnchorPane fx:id="titleRootPane" prefHeight="500" prefWidth="727.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="edu.neu.csye7374.javafx.FXTitleController">
+<!-- <ImageView fx:id="halo"
+           fitWidth="500" fitHeight="500"
+           layoutX="-80" layoutY="-20"
+           opacity="0.65"
+           preserveRatio="true">
+    <image>
+        <Image url="@assets/effects/halo_glow.png"/>
+    </image>
+</ImageView> -->
 
                 <!-- FIXED RELATIVE IMAGE PATH -->
     <ImageView fx:id="titleLogo" cache="true" depthTest="ENABLE" fitHeight="500" fitWidth="800" layoutX="-65.0">

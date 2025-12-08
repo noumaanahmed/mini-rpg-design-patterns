@@ -1,5 +1,6 @@
 package edu.neu.csye7374.javafx;
 
+import javafx.animation.FadeTransition;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -7,6 +8,7 @@ import javafx.stage.Stage;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
 
 public class FXCharacterSelectController {
 
@@ -21,49 +23,54 @@ public class FXCharacterSelectController {
 
     private String chosenClass = "warrior";
 
-@FXML
-public void initialize() {
+    @FXML
+    public void initialize() {
 
-    // Proper CSS loading — guaranteed to work
-    warriorBox.sceneProperty().addListener((obs, oldScene, newScene) -> {
-        if (newScene != null) {
-            String cssPath = "/edu/neu/csye7374/assets/character_select.css";
-            var url = getClass().getResource(cssPath);
+        // Proper CSS loading — guaranteed to work
+ warriorBox.sceneProperty().addListener((obs, oldScene, newScene) -> {
+    if (newScene != null) {
 
-            if (url == null) {
-                System.out.println("ERROR: CSS NOT FOUND -> " + cssPath);
-            } else {
-                newScene.getStylesheets().add(url.toExternalForm());
-                System.out.println("CSS Loaded: " + url);
-            }
-        }
-    });
+        // Character Select screen theme
+        String cssPath = "/edu/neu/csye7374/assets/character_select.css";
+        newScene.getStylesheets().add(getClass().getResource(cssPath).toExternalForm());
 
-    difficultyBox.getItems().addAll("Easy", "Normal", "Hard");
+        // GLOBAL RPG THEME
+        String globalCss = "/edu/neu/csye7374/assets/global_theme.css";
+        newScene.getStylesheets().add(getClass().getResource(globalCss).toExternalForm());
 
-    // Idle animations
-    FXAnimationUtil.playWarriorIdle(
-            warriorImage,
-            "/edu/neu/csye7374/assets/sprites/warrior_idle.png",
-            150
-    );
+        // Fade in
+        FadeTransition fadeIn = new FadeTransition(Duration.millis(350), newScene.getRoot());
+        fadeIn.setFromValue(0.0);
+        fadeIn.setToValue(1.0);
+        fadeIn.play();
+    }
+});
 
-    FXAnimationUtil.playMageIdle(
-            mageImage,
-            "/edu/neu/csye7374/assets/sprites/mage_idle.png",
-            150
-    );
+
+        difficultyBox.getItems().addAll("Easy", "Normal", "Hard");
+
+        // Idle animations
+        FXAnimationUtil.playWarriorIdle(
+                warriorImage,
+                "/edu/neu/csye7374/assets/sprites/warrior_idle.png",
+                150
+        );
+
+        FXAnimationUtil.playMageIdle(
+                mageImage,
+                "/edu/neu/csye7374/assets/sprites/mage_idle.png",
+                150
+        );
 
         // alignment tweak
-    warriorImage.setTranslateY(8);
-    mageImage.setTranslateY(-4);
+        warriorImage.setTranslateY(8);
+        mageImage.setTranslateY(-18);
 
-    warriorBox.setOnMouseClicked(e -> selectClass("warrior"));
-    mageBox.setOnMouseClicked(e -> selectClass("mage"));
+        warriorBox.setOnMouseClicked(e -> selectClass("warrior"));
+        mageBox.setOnMouseClicked(e -> selectClass("mage"));
 
-    selectClass("warrior");
-}
-
+        selectClass("warrior");
+    }
 
     private void selectClass(String cls) {
         chosenClass = cls;
@@ -90,11 +97,25 @@ public void initialize() {
                 getClass().getResource("/edu/neu/csye7374/battle.fxml")
         );
 
-        Scene scene = new Scene(loader.load());
+        Scene battleScene = new Scene(loader.load());
         FXBattleController controller = loader.getController();
         controller.startGame(name, chosenClass, difficulty);
 
         Stage stage = (Stage) warriorImage.getScene().getWindow();
-        stage.setScene(scene);
+
+        // Fade out current root, then set battle scene and fade in
+        Scene currentScene = warriorImage.getScene();
+        FadeTransition fadeOut = new FadeTransition(Duration.millis(350), currentScene.getRoot());
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+        fadeOut.setOnFinished(e -> {
+            stage.setScene(battleScene);
+
+            FadeTransition fadeIn = new FadeTransition(Duration.millis(350), battleScene.getRoot());
+            fadeIn.setFromValue(0.0);
+            fadeIn.setToValue(1.0);
+            fadeIn.play();
+        });
+        fadeOut.play();
     }
 }

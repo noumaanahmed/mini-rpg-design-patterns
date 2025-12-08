@@ -18,7 +18,13 @@ public class FXAnimationUtil {
     // You can tweak these if you want global scaling later
     private static final double WARRIOR_SCALE = 2.4;
     private static final double MAGE_SCALE    = 1.35;
-    private static final double GOBLIN_SCALE  = 1.8;  // <--- goblin slightly smaller
+   private static double GOBLIN_SCALE  = 1.8;  // default, can be overridden by controller
+
+// Allow controller to scale goblin depending on difficulty
+public static void setGoblinScale(double scale) {
+    GOBLIN_SCALE = scale;
+}
+
 
     // ------------------------------------------------------------------------
     // Shared helpers

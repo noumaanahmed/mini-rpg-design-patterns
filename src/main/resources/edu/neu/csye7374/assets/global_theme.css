@@ -1,0 +1,113 @@
+/* ============================================================
+   GLOBAL RPG UI THEME — applies to all UI controls
+   ============================================================ */
+
+/* ------------------------------
+   BUTTONS
+------------------------------ */
+
+.button {
+    -fx-background-color:
+        linear-gradient(#3c3f52, #2a2c3b),
+        linear-gradient(#4a4d66, #2e3045);
+    -fx-background-radius: 12;
+    -fx-background-insets: 0;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.55), 8, 0, 0, 2);
+    -fx-border-color: rgba(255,255,255,0.15);
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-padding: 10 20;
+}
+
+.button:hover {
+    -fx-background-color:
+        linear-gradient(#565b78, #323551),
+        linear-gradient(#60648a, #353859);
+    -fx-effect: dropshadow(gaussian, rgba(255,240,150,0.5), 10, 0, 0, 0);
+    -fx-cursor: hand;
+}
+
+.button:pressed {
+    -fx-background-color:
+        linear-gradient(#2c2f44, #1f2030),
+        linear-gradient(#3b3d54, #1e1f2e);
+    -fx-translate-y: 1;
+}
+
+/* ------------------------------
+   LABELS
+------------------------------ */
+
+.label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 6, 0, 0, 2);
+}
+
+/* ------------------------------
+   TEXT FIELDS
+------------------------------ */
+
+.text-field {
+    -fx-background-color: rgba(0,0,0,0.35);
+    -fx-background-radius: 10;
+    -fx-border-color: rgba(255,255,255,0.25);
+    -fx-border-radius: 10;
+    -fx-border-width: 1.2;
+    -fx-text-fill: white;
+    -fx-font-size: 14;
+    -fx-padding: 8 10;
+}
+
+.text-field:focused {
+    -fx-background-color: rgba(60,60,90,0.45);
+    -fx-border-color: rgba(255,200,60,0.8);
+    -fx-effect: dropshadow(gaussian, rgba(255,200,60,0.4), 10, 0, 0, 0);
+}
+
+/* ------------------------------
+   COMBOBOXES
+------------------------------ */
+
+.combo-box, .combo-box-base {
+    -fx-background-color: rgba(0,0,0,0.35);
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: rgba(255,255,255,0.25);
+    -fx-border-width: 1.2;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.combo-box:hover {
+    -fx-background-color: rgba(60,60,90,0.45);
+}
+
+.combo-box-popup .list-cell {
+    -fx-background-color: rgba(20,20,30,0.95);
+    -fx-text-fill: white;
+}
+
+/* ------------------------------
+   SCROLLPANES (for log window)
+------------------------------ */
+
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-control-inner-background: transparent;
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+/* ------------------------------
+   TEXTAREA / LOGBOX / CONTAINERS
+------------------------------ */
+
+.vbox, .hbox {
+    -fx-background-color: transparent;
+}
+

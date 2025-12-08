@@ -8,6 +8,8 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.ScrollPane?>
+
 
 <BorderPane prefHeight="600" prefWidth="900"
             xmlns="http://javafx.com/javafx/25"
@@ -28,26 +30,52 @@
                     </image>
                 </ImageView>
 
-                <!-- HERO HP ABOVE HERO -->
+                <!-- HERO HP BAR (background + fill) ABOVE TEXT -->
+                <Pane fx:id="heroHpBarBg"
+                      layoutX="160" layoutY="145"
+                      prefWidth="140" prefHeight="12"
+                      style="-fx-background-color: rgba(0,0,0,0.65); -fx-background-radius: 6;">
+                    <children>
+                        <Pane fx:id="heroHpBarFill"
+                              prefWidth="140" prefHeight="12"
+                              style="-fx-background-color: #fb8c00; -fx-background-radius: 6;" />
+                    </children>
+                </Pane>
+
+                <!-- ENEMY HP BAR (background + fill) ABOVE TEXT -->
+                <Pane fx:id="enemyHpBarBg"
+                      layoutX="620" layoutY="145"
+                      prefWidth="140" prefHeight="12"
+                      style="-fx-background-color: rgba(0,0,0,0.65); -fx-background-radius: 6;">
+                    <children>
+                        <Pane fx:id="enemyHpBarFill"
+                              prefWidth="140" prefHeight="12"
+                              style="-fx-background-color: #fb8c00; -fx-background-radius: 6;" />
+                    </children>
+                </Pane>
+
+                <!-- HERO HP LABEL BELOW BAR -->
                 <Label fx:id="heroHp"
                        layoutX="160" layoutY="165"
-                       style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;
+                       text="HP"
+                       style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: white;
                               -fx-effect: dropshadow(one-pass-box, black, 4, 0, 0, 0);" />
 
-                <!-- ENEMY HP ABOVE GOBLIN -->
+                <!-- ENEMY HP LABEL BELOW BAR -->
                 <Label fx:id="enemyHp"
                        layoutX="620" layoutY="165"
-                       style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: white;
+                       text="HP"
+                       style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: white;
                               -fx-effect: dropshadow(one-pass-box, black, 4, 0, 0, 0);" />
 
-                <!-- NEW: HERO MANA LABEL (for Mage only, positioned via bindings) -->
+                <!-- HERO MANA LABEL (for Mage only) -->
                 <Label fx:id="heroManaLabel"
                        layoutX="160" layoutY="190"
                        text="Mana: 0/0"
                        style="-fx-font-size: 14; -fx-font-weight: bold; -fx-text-fill: #4fc3f7;
                               -fx-effect: dropshadow(one-pass-box, black, 4, 0, 0, 0);" />
 
-                <!-- NEW: HERO MANA BAR (background + fill) -->
+                <!-- HERO MANA BAR (background + fill) -->
                 <Pane fx:id="manaBarBg"
                       layoutX="160" layoutY="210"
                       prefWidth="160" prefHeight="10"
@@ -78,16 +106,33 @@
 
             </Pane>
 
-            <!-- BATTLE LOGS (BETWEEN SPRITES AND BUTTONS) -->
-            <VBox fx:id="logBox"
-                  alignment="TOP_LEFT"
-                  maxWidth="780"
-                  prefHeight="120"
-                  spacing="4"
-                  style="-fx-padding: 8 16 8 16;
-                         -fx-background-color: rgba(0,0,0,0.45);
-                         -fx-background-radius: 10;">
-            </VBox>
+<!-- BATTLE LOG WINDOW -->
+<ScrollPane fx:id="logScroll"
+            styleClass="log-scroll"
+            prefHeight="120"
+            maxHeight="120"
+            fitToWidth="true"
+            hbarPolicy="NEVER"
+            vbarPolicy="AS_NEEDED">
+
+
+    <content>
+        <VBox fx:id="logBox"
+              alignment="TOP_LEFT"
+              spacing="6"
+              style="
+                -fx-padding: 14;
+                -fx-background-color: rgba(0,0,0,0.35);
+                -fx-background-radius: 18;
+                -fx-border-radius: 18;
+                -fx-border-color: rgba(255,255,255,0.25);
+                -fx-border-width: 1.2;
+              ">
+        </VBox>
+    </content>
+</ScrollPane>
+
+
 
         </VBox>
     </center>
