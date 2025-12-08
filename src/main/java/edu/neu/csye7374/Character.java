@@ -157,10 +157,26 @@ public class Character {
     // ================================================================
     // MAGE ACTIONS (randomized)
     // ================================================================
-    public int staffAttack(Character target) {
-        int dmg = randomBetween(STAFF_MIN, STAFF_MAX);
-        return applyDamage(target, dmg, name + " swings their staff");
+public int staffAttack(Character target) {
+    int dmg = randomBetween(STAFF_MIN, STAFF_MAX);
+
+    // ✅ Scale Goblin damage based on difficulty
+    if ("Goblin".equalsIgnoreCase(name)) {
+        int diff = GameConfig.getInstance().getDifficulty();
+
+        double multiplier = switch (diff) {
+            case 1 -> 1.0;  // Easy
+            case 2 -> 1.4;  // Normal
+            case 3 -> 1.9;  // Hard
+            default -> 1.0;
+        };
+
+        dmg = (int) Math.round(dmg * multiplier);
     }
+
+    return applyDamage(target, dmg, name + " swings their staff");
+}
+
 
     public int castFireball(Character target) {
 

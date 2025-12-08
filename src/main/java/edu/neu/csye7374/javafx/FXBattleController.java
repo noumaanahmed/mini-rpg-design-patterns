@@ -278,19 +278,22 @@ public class FXBattleController {
     // SCREEN FLASH OVERLAYS (damage + critical)
     // ---------------------------------------------------------
     private void setupScreenFlashOverlays() {
-        damageFlashOverlay = new Rectangle();
-        damageFlashOverlay.setFill(Color.color(1, 0, 0, 0.45)); // red
-        damageFlashOverlay.setOpacity(0);
-        damageFlashOverlay.widthProperty().bind(battlePane.widthProperty());
-        damageFlashOverlay.heightProperty().bind(battlePane.heightProperty());
+        // damageFlashOverlay = new Rectangle();
+        // damageFlashOverlay.setFill(Color.color(1, 0, 0, 0.45)); // red
+        // damageFlashOverlay.setOpacity(0);
+        // damageFlashOverlay.widthProperty().bind(battlePane.widthProperty());
+        // damageFlashOverlay.heightProperty().bind(battlePane.heightProperty());
 
-        critFlashOverlay = new Rectangle();
-        critFlashOverlay.setFill(Color.color(1, 1, 1, 0.85)); // white
-        critFlashOverlay.setOpacity(0);
-        critFlashOverlay.widthProperty().bind(battlePane.widthProperty());
-        critFlashOverlay.heightProperty().bind(battlePane.heightProperty());
+        // critFlashOverlay = new Rectangle();
+        // critFlashOverlay.setFill(Color.color(1, 1, 1, 0.85)); // white
+        // critFlashOverlay.setOpacity(0);
+        // critFlashOverlay.widthProperty().bind(battlePane.widthProperty());
+        // critFlashOverlay.heightProperty().bind(battlePane.heightProperty());
 
-        battlePane.getChildren().addAll(damageFlashOverlay, critFlashOverlay);
+        // battlePane.getChildren().addAll(damageFlashOverlay, critFlashOverlay);
+
+            damageFlashOverlay = null;
+    critFlashOverlay = null;
     }
 
     private void playDamageFlash() {
