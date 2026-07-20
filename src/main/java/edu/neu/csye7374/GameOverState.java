@@ -4,12 +4,20 @@ public class GameOverState implements GameState {
 
     @Override
     public void playerAttack(GameFacade game) {
-        game.log("The battle is already over.");
+        if (game != null) {
+                    game.log("[Pattern][State] GameOverState ignores playerAttack(); battle already over.");
+
+            game.log("The battle is already over.");
+        }
     }
 
     @Override
     public void playerHeal(GameFacade game) {
-        game.log("The battle is already over.");
+        if (game != null) {
+                    game.log("[Pattern][State] GameOverState ignores playerHeal(); battle already over.");
+
+            game.log("The battle is already over.");
+        }
     }
 
     @Override

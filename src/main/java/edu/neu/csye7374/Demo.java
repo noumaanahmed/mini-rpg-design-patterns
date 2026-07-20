@@ -134,6 +134,11 @@ public class Demo {
         boolean playing = true;
         boolean lastActionWasHeal = false;
 
+        System.out.println();
+System.out.println("[Pattern][Template] Starting main battle loop (Demo.gameRun).");
+
+
+
         while (playing) {
             // ===== Menu & Status =====
             System.out.println();

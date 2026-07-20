@@ -3,12 +3,13 @@ package edu.neu.csye7374;
 /**
  * Design Pattern: Builder
  * -----------------------
- * Provides a fluent API to construct Character objects with
- * configurable fields (name, health).
+ * Fluent API for constructing Character objects.
  */
 public class CharacterBuilder {
+
     private String name = "Unnamed";
     private int health = 100;
+    private Integer mana = null; // optional: set only for mages
 
     public CharacterBuilder setName(String name) {
         this.name = name;
@@ -20,7 +21,16 @@ public class CharacterBuilder {
         return this;
     }
 
+    public CharacterBuilder setMana(int mana) {
+        this.mana = mana;
+        return this;
+    }
+
     public Character build() {
-        return new Character(name, health);
+        Character c = new Character(name, health);
+        if (mana != null) {
+            c.setMana(mana);
+        }
+        return c;
     }
 }

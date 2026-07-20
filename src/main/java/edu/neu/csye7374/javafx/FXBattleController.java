@@ -2,6 +2,8 @@ package edu.neu.csye7374.javafx;
 
 import edu.neu.csye7374.*;
 import edu.neu.csye7374.Character;
+import edu.neu.csye7374.engine.ActionResult;
+import edu.neu.csye7374.engine.GameEngine;
 import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -46,14 +48,16 @@ public class FXBattleController {
     @FXML private Button fireballButton;
     @FXML private Button healButton;
 
-@FXML private ScrollPane logScroll;   // ⬅️ NEW: wired to fx:id="logScroll"
-@FXML private VBox logBox;
-@FXML private Pane battlePane;
+    @FXML private ScrollPane logScroll;
+    @FXML private VBox logBox;
+    @FXML private Pane battlePane;
 
     // ---------------------------------------------------------
     // DOMAIN / GAME STATE
     // ---------------------------------------------------------
     private GameFacade game;
+    private GameEngine engine;
+
     private Character player;
     private Character enemy;
     private String playerType;
@@ -80,25 +84,26 @@ public class FXBattleController {
     private String mageHurt;
     private String heroDead;
 
-    // Screen flash overlays (damage & crit)
+    // Screen flash overlays (damage + crit)
     private Rectangle damageFlashOverlay;
     private Rectangle critFlashOverlay;
 
     // ---------------------------------------------------------
-    // START GAME
+    // START GAME (called by Character Select screen)
     // ---------------------------------------------------------
     public void startGame(String name, String type, int difficulty) {
 
-        
         this.playerType = type.toLowerCase();
         this.difficultyLevel = difficulty;
-            // APPLY GLOBAL RPG THEME
-    Scene scene = heroSprite.getScene();
-    if (scene != null) {
-        String globalCss = "/edu/neu/csye7374/assets/global_theme.css";
-        scene.getStylesheets().add(getClass().getResource(globalCss).toExternalForm());
-    }
-        loadSpritePaths();
+
+        // APPLY GLOBAL RPG THEME
+        Scene scene = heroSprite.getScene();
+        if (scene != null) {
+            String globalCss = "/edu/neu/csye7374/assets/global_theme.css";
+            scene.getStylesheets().add(
+                    getClass().getResource(globalCss).toExternalForm()
+            );
+        }
 
         // --- Facade + Observer wiring ---
         game = new GameFacade();
@@ -109,14 +114,16 @@ public class FXBattleController {
         game.setObserver(composite);
         game.startNewGame(name, type, difficulty);
 
-        // pull references from facade (read-only for GUI)
-        this.player = game.getPlayer();
-        this.enemy  = game.getEnemy();
+        // --- GameEngine wiring ---
+        engine = new GameEngine(game);
+        this.player = engine.getPlayer();
+        this.enemy  = engine.getEnemy();
 
-        // Store max HP for bar percentages
+        // Store max HP for bar percentages (initial HP is treated as "max")
         this.playerMaxHp = player.getHealth();
         this.enemyMaxHp  = enemy.getHealth();
 
+        loadSpritePaths();
         configureButtonsForClass();
         setupScreenFlashOverlays();
 
@@ -167,9 +174,9 @@ public class FXBattleController {
         // DIFFICULTY-BASED GOBLIN SCALE
         // ---------------------------------------------------------
         double goblinScale = switch (difficultyLevel) {
-            case 1 -> 1.4;  // small (Easy)
-            case 2 -> 1.8;  // medium (Normal)
-            case 3 -> 2.3;  // big (Hard)
+            case 1 -> 1.4;  // Easy
+            case 2 -> 1.8;  // Normal
+            case 3 -> 2.3;  // Hard
             default -> 1.8;
         };
         FXAnimationUtil.setGoblinScale(goblinScale);
@@ -177,10 +184,11 @@ public class FXBattleController {
         // ---------------------------------------------------------
         // PLAY IDLE ANIMATIONS
         // ---------------------------------------------------------
-        if (playerType.equals("mage"))
+        if (playerType.equals("mage")) {
             FXAnimationUtil.playMageIdle(heroSprite, idleHero, 200);
-        else
+        } else {
             FXAnimationUtil.playWarriorIdle(heroSprite, idleHero, 200);
+        }
 
         FXAnimationUtil.playGoblinIdle(enemySprite, goblinIdle, 110);
 
@@ -191,17 +199,16 @@ public class FXBattleController {
         logSystem("🎮  " + player.getName() + " the " + capitalize(playerType) +
                   " enters the fray (Difficulty: " + difficultyLevel + ").");
 
-                  // ---------------------------------------------------------
-// LOAD CSS FOR LOG WINDOW (ScrollPane transparency fix)
-// ---------------------------------------------------------
-Platform.runLater(() -> {
-    if (battlePane.getScene() != null) {
-        battlePane.getScene().getStylesheets().add(
-            getClass().getResource("/edu/neu/csye7374/assets/battle.css").toExternalForm()
-        );
-    }
-});
-
+        // ---------------------------------------------------------
+        // LOAD CSS FOR LOG WINDOW (ScrollPane transparency fix)
+        // ---------------------------------------------------------
+        Platform.runLater(() -> {
+            if (battlePane.getScene() != null) {
+                battlePane.getScene().getStylesheets().add(
+                        getClass().getResource("/edu/neu/csye7374/assets/battle.css").toExternalForm()
+                );
+            }
+        });
     }
 
     // ---------------------------------------------------------
@@ -229,7 +236,9 @@ Platform.runLater(() -> {
 
         swordButton.setDisable(false);
         healButton.setDisable(false);
+
         if ("mage".equals(playerType)) {
+            // B2: once mana hits 0, button is disabled — no spammy message
             fireballButton.setDisable(!player.canCastFireball());
         } else {
             fireballButton.setDisable(true);
@@ -262,26 +271,29 @@ Platform.runLater(() -> {
 
         heroDead     = playerType.equals("mage")
                 ? "/edu/neu/csye7374/assets/sprites/mage_dead.png"
-                : "/edu/neu/csye7374/assets/sprites/warrior_dead.png";
+                : "/edu/neu/csye7374/assets/sprites/warrior_death.png";
     }
 
     // ---------------------------------------------------------
     // SCREEN FLASH OVERLAYS (damage + critical)
     // ---------------------------------------------------------
     private void setupScreenFlashOverlays() {
-        damageFlashOverlay = new Rectangle();
-        damageFlashOverlay.setFill(Color.color(1, 0, 0, 0.45)); // red
-        damageFlashOverlay.setOpacity(0);
-        damageFlashOverlay.widthProperty().bind(battlePane.widthProperty());
-        damageFlashOverlay.heightProperty().bind(battlePane.heightProperty());
+        // damageFlashOverlay = new Rectangle();
+        // damageFlashOverlay.setFill(Color.color(1, 0, 0, 0.45)); // red
+        // damageFlashOverlay.setOpacity(0);
+        // damageFlashOverlay.widthProperty().bind(battlePane.widthProperty());
+        // damageFlashOverlay.heightProperty().bind(battlePane.heightProperty());
 
-        critFlashOverlay = new Rectangle();
-        critFlashOverlay.setFill(Color.color(1, 1, 1, 0.85)); // white
-        critFlashOverlay.setOpacity(0);
-        critFlashOverlay.widthProperty().bind(battlePane.widthProperty());
-        critFlashOverlay.heightProperty().bind(battlePane.heightProperty());
+        // critFlashOverlay = new Rectangle();
+        // critFlashOverlay.setFill(Color.color(1, 1, 1, 0.85)); // white
+        // critFlashOverlay.setOpacity(0);
+        // critFlashOverlay.widthProperty().bind(battlePane.widthProperty());
+        // critFlashOverlay.heightProperty().bind(battlePane.heightProperty());
 
-        battlePane.getChildren().addAll(damageFlashOverlay, critFlashOverlay);
+        // battlePane.getChildren().addAll(damageFlashOverlay, critFlashOverlay);
+
+            damageFlashOverlay = null;
+    critFlashOverlay = null;
     }
 
     private void playDamageFlash() {
@@ -293,38 +305,6 @@ Platform.runLater(() -> {
         t.play();
     }
 
-    private void flashSpriteWhite(ImageView sprite) {
-    if (sprite == null) return;
-
-    ColorAdjust colorAdjust = new ColorAdjust();
-    sprite.setEffect(colorAdjust);
-
-    Timeline flash = new Timeline(
-            new KeyFrame(Duration.ZERO, e -> colorAdjust.setBrightness(1.0)),
-            new KeyFrame(Duration.millis(120), e -> colorAdjust.setBrightness(0.0))
-    );
-
-    flash.setOnFinished(e -> sprite.setEffect(null));
-    flash.play();
-}
-
-private void flashSpriteGreen(ImageView sprite) {
-    if (sprite == null) return;
-
-    ColorAdjust colorAdjust = new ColorAdjust();
-    sprite.setEffect(colorAdjust);
-
-    Timeline flash = new Timeline(
-            new KeyFrame(Duration.ZERO, e -> colorAdjust.setHue(0.4)),  // green
-            new KeyFrame(Duration.millis(180), e -> colorAdjust.setHue(0.0))
-    );
-
-    flash.setOnFinished(e -> sprite.setEffect(null));
-    flash.play();
-}
-
-
-
     private void playCriticalFlash() {
         if (critFlashOverlay == null) return;
         Timeline t = new Timeline(
@@ -334,12 +314,41 @@ private void flashSpriteGreen(ImageView sprite) {
         t.play();
     }
 
+    private void flashSpriteWhite(ImageView sprite) {
+        if (sprite == null) return;
+
+        ColorAdjust colorAdjust = new ColorAdjust();
+        sprite.setEffect(colorAdjust);
+
+        Timeline flash = new Timeline(
+                new KeyFrame(Duration.ZERO, e -> colorAdjust.setBrightness(1.0)),
+                new KeyFrame(Duration.millis(120), e -> colorAdjust.setBrightness(0.0))
+        );
+
+        flash.setOnFinished(e -> sprite.setEffect(null));
+        flash.play();
+    }
+
+    private void flashSpriteGreen(ImageView sprite) {
+        if (sprite == null) return;
+
+        ColorAdjust colorAdjust = new ColorAdjust();
+        sprite.setEffect(colorAdjust);
+
+        Timeline flash = new Timeline(
+                new KeyFrame(Duration.ZERO, e -> colorAdjust.setHue(0.4)),  // green
+                new KeyFrame(Duration.millis(180), e -> colorAdjust.setHue(0.0))
+        );
+
+        flash.setOnFinished(e -> sprite.setEffect(null));
+        flash.play();
+    }
+
     // ---------------------------------------------------------
-    // HEAL BUTTON  (delegates to GameFacade)
+    // HEAL BUTTON  (via GameEngine)
     // ---------------------------------------------------------
     @FXML
     private void onHeal() {
-
         if (!readyForAction()) return;
 
         disableButtons();
@@ -354,12 +363,17 @@ private void flashSpriteGreen(ImageView sprite) {
         );
         flashSpriteGreen(heroSprite);
 
-        // Domain heal logic (Command) via Facade
-        game.guiPlayerHeal();
+        // Domain heal via engine
+        ActionResult result = engine.handlePlayerAction(GameEngine.PlayerAction.HEAL);
+
+        // Update HP / mana UI
         updateLabels();
 
-        // Floating HP text (over HP label)
-        spawnFloatingHealText(heroHp, "+12");
+        // Floating HP text with actual heal amount
+        int healed = result.getValue();
+        if (healed > 0) {
+            spawnFloatingHealText(heroHp, "+" + healed);
+        }
 
         logSystem("❤️  " + player.getName() +
                 " heals to " + player.getHealth() + " HP.");
@@ -399,7 +413,10 @@ private void flashSpriteGreen(ImageView sprite) {
     // BASIC CHECKS
     // ---------------------------------------------------------
     private boolean readyForAction() {
-        return !battleOver && player.isAlive() && enemy.isAlive();
+        return !battleOver &&
+               engine != null &&
+               player != null && enemy != null &&
+               player.isAlive() && enemy.isAlive();
     }
 
     @FXML
@@ -412,62 +429,59 @@ private void flashSpriteGreen(ImageView sprite) {
     private void onFireball() {
         if (!readyForAction()) return;
         if (!"mage".equals(playerType)) return;
-        if (!player.canCastFireball()) {
-            logSystem("💤 Not enough mana to cast Fireball!");
+
+        // B2: if button is disabled because of mana, just ignore.
+        if (fireballButton.isDisabled()) {
             return;
         }
+
         handlePlayerAttack(true);
     }
 
     // ---------------------------------------------------------
-    // PLAYER ATTACK (all logic in GameFacade)
+    // PLAYER ATTACK (via GameEngine + ActionResult)
     // ---------------------------------------------------------
     private void handlePlayerAttack(boolean isFireball) {
 
         disableButtons();
 
-        // Small *visual* crit chance for the warrior
-        boolean warriorCrit =
-                !isFireball &&
-                "warrior".equals(playerType) &&
-                Math.random() < 0.25;
+        GameEngine.PlayerAction action =
+                isFireball ? GameEngine.PlayerAction.FIREBALL : GameEngine.PlayerAction.BASIC_ATTACK;
 
         if ("mage".equals(playerType)) {
-
             if (isFireball) {
                 logPlayer("🔥 " + player.getName() + " casts Fireball!");
                 FXAnimationUtil.playMageFireball(heroSprite, fireballHero, idleHero);
-
-                game.guiPlayerFireballAttack();
-
             } else {
                 logPlayer("⚔️ " + player.getName() + " swings their staff!");
                 FXAnimationUtil.playMageStaffAttack(heroSprite, attackHero, idleHero);
-
-                game.guiPlayerSwordOrStaffAttack(true);
             }
-
         } else {
-            if (warriorCrit) {
-                logPlayer("💥 CRITICAL STRIKE!");
-                playCriticalFlash();
-            } else {
-                logPlayer("⚔️ " + player.getName() + " swings their sword!");
-            }
-
+            logPlayer("⚔️ " + player.getName() + " swings their sword!");
             FXAnimationUtil.playWarriorAttack(heroSprite, attackHero, idleHero);
-
-            game.guiPlayerSwordOrStaffAttack(false);
         }
 
-        // Goblin took damage → red flash
-        // playDamageFlash();
+        // --- Domain logic via engine ---
+        ActionResult result = engine.handlePlayerAction(action);
 
+        // Use engine’s knowledge of crits to trigger FX
+        if (result.isCritical()) {
+            playCriticalFlash();
+        }
+
+        // Goblin took damage → red flash + hurt animation
+        if (result.getValue() > 0 &&
+            (result.getType() == ActionResult.ActionType.ATTACK ||
+             result.getType() == ActionResult.ActionType.FIREBALL ||
+             result.getType() == ActionResult.ActionType.ENEMY_DEATH)) {
+
+            playDamageFlash();
+            FXAnimationUtil.playGoblinHurt(enemySprite, goblinHurt, goblinIdle);
+            flashSpriteWhite(enemySprite);
+        }
+
+        // Update HP & mana
         updateLabels();
-
-        // Goblin hurt animation (visual only)
-        FXAnimationUtil.playGoblinHurt(enemySprite, goblinHurt, goblinIdle);
-        flashSpriteWhite(enemySprite);
 
         if (checkBattleOutcome()) return;
 
@@ -475,7 +489,7 @@ private void flashSpriteGreen(ImageView sprite) {
     }
 
     // ---------------------------------------------------------
-    // GOBLIN COUNTER (Facade handles attack logic)
+    // GOBLIN COUNTER (via GameEngine)
     // ---------------------------------------------------------
     private void scheduleGoblinCounter() {
         PauseTransition p = new PauseTransition(Duration.millis(1300));
@@ -491,20 +505,25 @@ private void flashSpriteGreen(ImageView sprite) {
 
         FXAnimationUtil.playGoblinAttack(enemySprite, goblinAttack, goblinIdle);
 
-        // Domain enemy attack logic
-        game.guiEnemyAttack();
+        // Domain enemy attack logic via engine
+        ActionResult result = engine.handleEnemyAttack();
 
-        // Hero took damage → red flash
-        // playDamageFlash();
+        // Hero took damage → red flash & hurt animation
+        if (result.getValue() > 0 &&
+            (result.getType() == ActionResult.ActionType.ENEMY_ATTACK ||
+             result.getType() == ActionResult.ActionType.PLAYER_DEATH)) {
+
+            playDamageFlash();
+
+            if ("mage".equals(playerType))
+                FXAnimationUtil.playMageHurt(heroSprite, mageHurt, idleHero);
+            else
+                FXAnimationUtil.playWarriorHurt(heroSprite, warriorHurt, idleHero);
+
+            flashSpriteWhite(heroSprite);
+        }
 
         updateLabels();
-
-        if ("mage".equals(playerType))
-            FXAnimationUtil.playMageHurt(heroSprite, mageHurt, idleHero);
-        else
-            FXAnimationUtil.playWarriorHurt(heroSprite, warriorHurt, idleHero);
-
-        flashSpriteWhite(heroSprite);
         checkBattleOutcome();
     }
 
@@ -679,52 +698,50 @@ private void flashSpriteGreen(ImageView sprite) {
         fireballButton.setDisable(!player.canCastFireball());
     }
 
-// ---------------------------------------------------------
-// LOGGING HELPERS (visual logs with animation)
-// ---------------------------------------------------------
-private void logLine(String text, String colorHex) {
+    // ---------------------------------------------------------
+    // LOGGING HELPERS (visual logs with animation)
+    // ---------------------------------------------------------
+    private void logLine(String text, String colorHex) {
 
-    Label line = new Label(text);
+        Label line = new Label(text);
 
-    // Base styling (white, bold, shadow)
-    String baseStyle = """
-        -fx-font-size: 14;
-        -fx-font-weight: bold;
-        -fx-text-fill: white;
-        -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.9), 4, 0, 0, 0);
-    """;
+        // Base styling (white, bold, shadow)
+        String baseStyle = """
+            -fx-font-size: 14;
+            -fx-font-weight: bold;
+            -fx-text-fill: white;
+            -fx-effect: dropshadow(one-pass-box, rgba(0,0,0,0.9), 4, 0, 0, 0);
+        """;
 
-    // Apply white base, then override text color
-    line.setStyle(baseStyle + "-fx-text-fill: " + colorHex + ";");
+        // Apply white base, then override text color
+        line.setStyle(baseStyle + "-fx-text-fill: " + colorHex + ";");
 
-    logBox.getChildren().add(line);
+        logBox.getChildren().add(line);
 
-    // --- Fade-in animation ---
-    FadeTransition fade = new FadeTransition(Duration.millis(220), line);
-    fade.setFromValue(0);
-    fade.setToValue(1);
-    fade.play();
+        // --- Fade-in animation ---
+        FadeTransition fade = new FadeTransition(Duration.millis(220), line);
+        fade.setFromValue(0);
+        fade.setToValue(1);
+        fade.play();
 
-    // --- Slide-up animation ---
-    TranslateTransition slide = new TranslateTransition(Duration.millis(220), line);
-    slide.setFromY(6);
-    slide.setToY(0);
-    slide.play();
+        // --- Slide-up animation ---
+        TranslateTransition slide = new TranslateTransition(Duration.millis(220), line);
+        slide.setFromY(6);
+        slide.setToY(0);
+        slide.play();
 
-    // --- Smooth auto-scroll ---
-    Platform.runLater(() -> {
-        if (logScroll == null) return;
-        Timeline scrollAnim = new Timeline(
-            new KeyFrame(
-                Duration.millis(180),
-                new KeyValue(logScroll.vvalueProperty(), 1.0, Interpolator.EASE_BOTH)
-            )
-        );
-        scrollAnim.play();
-    });
-}
-
-
+        // --- Smooth auto-scroll ---
+        Platform.runLater(() -> {
+            if (logScroll == null) return;
+            Timeline scrollAnim = new Timeline(
+                    new KeyFrame(
+                            Duration.millis(180),
+                            new KeyValue(logScroll.vvalueProperty(), 1.0, Interpolator.EASE_BOTH)
+                    )
+            );
+            scrollAnim.play();
+        });
+    }
 
     private void logPlayer(String t) { logLine(t, "#ffeb3b"); }
     private void logEnemy(String t)  { logLine(t, "#ff7043"); }

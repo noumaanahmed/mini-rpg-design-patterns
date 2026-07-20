@@ -16,10 +16,19 @@ public class CommandInvoker {
         commands.add(cmd);
     }
 
-    public void executeAll() {
-        for (Command cmd : commands) {
-            cmd.execute();
-        }
-        commands.clear();
+public void executeAll() {
+    if (commands.isEmpty()) {
+        System.out.println("[Pattern][Command] CommandInvoker.executeAll() called with 0 commands.");
+        return;
     }
+
+    System.out.println("[Pattern][Command] CommandInvoker executing "
+            + commands.size() + " command(s).");
+
+    for (Command cmd : commands) {
+        cmd.execute();
+    }
+    commands.clear();
+}
+
 }

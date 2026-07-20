@@ -10,8 +10,16 @@ public class AttackCommand implements Command {
 		this.target = target;
 	}
 
-	@Override
-	public void execute() {
-		attacker.attack(target);
-	}
+@Override
+public void execute() {
+    if (attacker == null || target == null) return;
+
+    attacker.notifyObservers(
+        "[Pattern][Command] AttackCommand.execute() invoked for "
+        + attacker.getName()
+    );
+
+    attacker.attack(target);   // Strategy/Decorator runs inside this
+}
+
 }
